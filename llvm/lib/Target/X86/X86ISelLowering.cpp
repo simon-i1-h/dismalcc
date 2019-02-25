@@ -13884,7 +13884,6 @@ static SDValue lowerVectorShuffleAsLanePermuteAndPermute(
   int NumEltsPerLane = NumElts / NumLanes;
 
   SmallVector<int, 4> SrcLaneMask(NumLanes, SM_SentinelUndef);
-  SmallVector<int, 16> LaneMask(NumElts, SM_SentinelUndef);
   SmallVector<int, 16> PermMask(NumElts, SM_SentinelUndef);
 
   for (int i = 0; i != NumElts; ++i) {
@@ -13899,8 +13898,18 @@ static SDValue lowerVectorShuffleAsLanePermuteAndPermute(
       return SDValue();
     SrcLaneMask[DstLane] = SrcLane;
 
-    LaneMask[i] = (SrcLane * NumEltsPerLane) + (i % NumEltsPerLane);
     PermMask[i] = (DstLane * NumEltsPerLane) + (M % NumEltsPerLane);
+  }
+
+  // Make sure we set all elements of the lane mask, to avoid undef propagation.
+  SmallVector<int, 16> LaneMask(NumElts, SM_SentinelUndef);
+  for (int DstLane = 0; DstLane != NumLanes; ++DstLane) {
+    int SrcLane = SrcLaneMask[DstLane];
+    if (0 <= SrcLane)
+      for (int j = 0; j != NumEltsPerLane; ++j) {
+        LaneMask[(DstLane * NumEltsPerLane) + j] =
+            (SrcLane * NumEltsPerLane) + j;
+      }
   }
 
   // If we're only shuffling a single lowest lane and the rest are identity
@@ -42506,6 +42515,14 @@ X86TargetLowering::getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
     // flags -> EFLAGS
     if (StringRef("{flags}").equals_lower(Constraint))
       return std::make_pair(X86::EFLAGS, &X86::CCRRegClass);
+
+    // dirflag -> DF
+    if (StringRef("{dirflag}").equals_lower(Constraint))
+      return std::make_pair(X86::DF, &X86::DFCCRRegClass);
+
+    // fpsr -> FPSW
+    if (StringRef("{fpsr}").equals_lower(Constraint))
+      return std::make_pair(X86::FPSW, &X86::FPCCRRegClass);
 
     // 'A' means [ER]AX + [ER]DX.
     if (Constraint == "A") {
