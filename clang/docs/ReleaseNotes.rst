@@ -11,14 +11,14 @@ Written by the `LLVM Team <https://llvm.org/>`_
 Introduction
 ============
 
-This document contains the release notes for the Clang C/C++/Objective-C
+This document contains the release notes for the Clang C/C++/Objective-C/OpenCL
 frontend, part of the LLVM Compiler Infrastructure, release 8.0.0. Here we
 describe the status of Clang in some detail, including major
 improvements from the previous release and new feature work. For the
 general LLVM release notes, see `the LLVM
 documentation <https://llvm.org/docs/ReleaseNotes.html>`_. All LLVM
-releases may be downloaded from the `LLVM releases web
-site <https://llvm.org/releases/>`_.
+releases may be downloaded
+from the `LLVM releases web site <https://releases.llvm.org/>`_.
 
 For more information about Clang or LLVM, including information about the
 latest release, please see the `Clang Web Site <https://clang.llvm.org>`_ or the
@@ -41,7 +41,7 @@ Major New Features
   example, due to renaming a class or namespace).
   See the :ref:`UsersManual <profile_remapping>` for details.
 
-- Clang has new options to initialize automatic variables with either a pattern or with zeroes. The default is still that automatic variables are uninitialized. This isn't meant to change the semantics of C and C++. Rather, it's meant to be a last resort when programmers inadvertently have some undefined behavior in their code. These options aim to make undefined behavior hurt less, which security-minded people will be very happy about. Notably, this means that there's no inadvertent information leak when:
+- Clang has new options to initialize automatic variables with a pattern. The default is still that automatic variables are uninitialized. This isn't meant to change the semantics of C and C++. Rather, it's meant to be a last resort when programmers inadvertently have some undefined behavior in their code. These options aim to make undefined behavior hurt less, which security-minded people will be very happy about. Notably, this means that there's no inadvertent information leak when:
 
     * The compiler re-uses stack slots, and a value is used uninitialized.
 
@@ -64,8 +64,6 @@ Major New Features
     * ``-ftrivial-auto-var-init=uninitialized`` (the default)
 
     * ``-ftrivial-auto-var-init=pattern``
-
-    * ``-ftrivial-auto-var-init=zero`` ``-enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang``
 
   There is also a new attribute to request a variable to not be initialized, mainly to disable initialization of large stack arrays when deemed too expensive:
 
@@ -177,23 +175,13 @@ New Compiler Flags
   be controlled by the ``-mrelax-pic-calls`` and ``-mno-relax-pic-calls``
   options.
 
-- ...
-
-Deprecated Compiler Flags
--------------------------
-
-The following options are deprecated and ignored. They will be removed in
-future versions of Clang.
-
-- ...
-
 Modified Compiler Flags
 -----------------------
 
-- As of clang 8, `alignof` and `_Alignof` return the ABI alignment of a type,
-  as opposed to the preferred alignment. `__alignof` still returns the
-  preferred alignment. `-fclang-abi-compat=7` (and previous) will make
-  `alignof` and `_Alignof` return preferred alignment again.
+- As of clang 8, ``alignof`` and ``_Alignof`` return the ABI alignment of a type,
+  as opposed to the preferred alignment. ``__alignof`` still returns the
+  preferred alignment. ``-fclang-abi-compat=7`` (and previous) will make
+  ``alignof`` and ``_Alignof`` return preferred alignment again.
 
 
 New Pragmas in Clang
@@ -212,7 +200,7 @@ Attribute Changes in Clang
 Windows Support
 ---------------
 
-- clang-cl now supports the use of the precompiled header options /Yc and /Yu
+- clang-cl now supports the use of the precompiled header options ``/Yc`` and ``/Yu``
   without the filename argument. When these options are used without the
   filename, a `#pragma hdrstop` inside the source marks the end of the
   precompiled code.
@@ -231,55 +219,79 @@ Windows Support
 
 - Allow using Address Sanitizer and Undefined Behaviour Sanitizer on MinGW.
 
-- ...
+- Structured Exception Handling support for ARM64 Windows. The ARM64 Windows
+  target is in pretty good shape now.
 
 
-C Language Changes in Clang
----------------------------
+OpenCL Kernel Language Changes in Clang
+---------------------------------------
 
-- ...
+Misc:
 
-...
+- Improved address space support with Clang builtins.
 
-C11 Feature Support
-^^^^^^^^^^^^^^^^^^^
+- Improved various diagnostics for vectors with element types from extensions;
+  values used in attributes; duplicate address spaces.
 
-...
+- Allow blocks to capture arrays.
 
-C++ Language Changes in Clang
------------------------------
+- Allow zero assignment and comparisons between variables of ``queue_t`` type.
 
-- ...
+- Improved diagnostics of formatting specifiers and argument promotions for
+  vector types in ``printf``.
 
-C++1z Feature Support
-^^^^^^^^^^^^^^^^^^^^^
+- Fixed return type of enqueued kernel and pipe builtins.
 
-...
+- Fixed address space of ``clk_event_t`` generated in the IR.
 
-Objective-C Language Changes in Clang
--------------------------------------
+- Fixed address space when passing/returning structs.
 
-...
+Header file fixes:
 
-OpenCL C Language Changes in Clang
-----------------------------------
+- Added missing extension guards around several builtin function overloads.
 
-...
+- Fixed serialization support when registering vendor extensions using pragmas.
+
+- Fixed OpenCL version in declarations of builtin functions with sampler-less
+  image accesses.
+
+New vendor extensions added:
+
+- ``cl_intel_planar_yuv``
+
+- ``cl_intel_device_side_avc_motion_estimation``
+
+
+C++ for OpenCL:
+
+- Added support of address space conversions in C style casts.
+
+- Enabled address spaces for references.
+
+- Fixed use of address spaces in templates: address space deduction and diagnostics.
+
+- Changed default address space to work with C++ specific concepts: class members,
+  template parameters, etc.
+
+- Added generic address space by default to the generated hidden 'this' parameter.
+
+- Extend overload ranking rules for address spaces.
+
 
 ABI Changes in Clang
 --------------------
 
-- `_Alignof` and `alignof` now return the ABI alignment of a type, as opposed
+- ``_Alignof`` and ``alignof`` now return the ABI alignment of a type, as opposed
   to the preferred alignment.
 
   - This is more in keeping with the language of the standards, as well as
     being compatible with gcc
-  - `__alignof` and `__alignof__` still return the preferred alignment of
+  - ``__alignof`` and ``__alignof__`` still return the preferred alignment of
     a type
   - This shouldn't break any ABI except for things that explicitly ask for
-    `alignas(alignof(T))`.
+    ``alignas(alignof(T))``.
   - If you have interfaces that break with this change, you may wish to switch
-    to `alignas(__alignof(T))`, instead of using the `-fclang-abi-compat`
+    to ``alignas(__alignof(T))``, instead of using the ``-fclang-abi-compat``
     switch.
 
 OpenMP Support in Clang
@@ -316,42 +328,6 @@ New features supported for Cuda devices:
 
 - General performance improvement.
 
-CUDA Support in Clang
----------------------
-
-
-Internal API Changes
---------------------
-
-These are major API changes that have happened since the 7.0.0 release of
-Clang. If upgrading an external codebase that uses Clang as a library,
-this section should help get you past the largest hurdles of upgrading.
-
--  ...
-
-AST Matchers
-------------
-
-- ...
-
-clang-format
-------------
-
-
-- ...
-
-libclang
---------
-
-...
-
-
-Static Analyzer
----------------
-
-- ...
-
-...
 
 .. _release-notes-ubsan:
 
@@ -428,25 +404,6 @@ Undefined Behavior Sanitizer (UBSan)
           data[x] *= data[x];
       }
 
-Core Analysis Improvements
-==========================
-
-- ...
-
-New Issues Found
-================
-
-- ...
-
-Python Binding Changes
-----------------------
-
-The following methods have been added:
-
--  ...
-
-Significant Known Problems
-==========================
 
 Additional Information
 ======================
