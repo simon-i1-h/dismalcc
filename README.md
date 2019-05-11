@@ -6,6 +6,7 @@ Features:
 - Small
 - Many target platforms support
 - Run on OpenBSD \(TODO: and more?\)
+  - Currently, DismalCC run only on Ubuntu.
 
 DismalCC is licensed under the University of Illinois/NCSA Open Source (UIUC) License.
 
