@@ -1,14 +1,4 @@
-Yes, I got [xruby syndrome](https://www.publickey1.jp/blog/19/ruby_2.html).
-
-DismalCC ("LibreCC" is reserved.) is a C/C++ compiler for OpenBSD. It is a personal fork of Clang/LLVM/etc. A base is https://github.com/llvm/llvm-project/tree/release/8.x .
-
-Features:
-- Small
-- Many target platforms support
-- Run on OpenBSD \(TODO: and more?\)
-  - Currently, DismalCC run only on Ubuntu.
-
-DismalCC is licensed under the University of Illinois/NCSA Open Source (UIUC) License.
+DismalTC is a toolchain. It's licensed under the University of Illinois/NCSA Open Source (UIUC) License.
 
 
 ## misc
