@@ -44,7 +44,6 @@ else:
 GIT_TO_SVN_DIR = {
     d: (d + '/branches/release_80')
     for d in [
-        'clang-tools-extra',
         'compiler-rt',
         'debuginfo-tests',
         'dragonegg',

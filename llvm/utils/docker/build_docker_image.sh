@@ -116,9 +116,7 @@ while [[ $# -gt 0 ]]; do
       fi
 
       CHECKOUT_ARGS="$CHECKOUT_ARGS $1 $PROJ"
-      if [ "$PROJ" != "clang-tools-extra" ]; then
-        CMAKE_ENABLED_PROJECTS="$CMAKE_ENABLED_PROJECTS;$PROJ"
-      fi
+      CMAKE_ENABLED_PROJECTS="$CMAKE_ENABLED_PROJECTS;$PROJ"
 
       shift 2
       ;;

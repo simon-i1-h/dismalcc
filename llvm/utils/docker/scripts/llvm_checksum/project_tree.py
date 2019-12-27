@@ -61,8 +61,7 @@ def CreateLLVMProjects(single_tree_checkout):
       When True, relative paths for each project points to a typical single
         source tree checkout.
       When False, relative paths for each projects points to a separate
-        directory. However, clang-tools-extra is an exception, its relative path
-        will always be 'clang/tools/extra'.
+        directory.
   """
   # FIXME: cover all of llvm projects.
 
@@ -82,14 +81,8 @@ def CreateLLVMProjects(single_tree_checkout):
     projects += [
         LLVMProject(p, os.path.join("tools", p)) for p in TOOLS_PROJECTS
     ]
-    projects.append(
-        LLVMProject("clang-tools-extra",
-                    os.path.join("tools", "clang", "tools", "extra")))
   else:
     projects = [LLVMProject("llvm", "llvm")]
     projects += [LLVMProject(p, p) for p in ORDINARY_PROJECTS]
     projects += [LLVMProject(p, p) for p in TOOLS_PROJECTS]
-    projects.append(
-        LLVMProject("clang-tools-extra", os.path.join("clang", "tools",
-                                                      "extra")))
   return projects

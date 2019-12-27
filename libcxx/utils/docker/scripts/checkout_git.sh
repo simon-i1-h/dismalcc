@@ -67,10 +67,6 @@ while [[ $# -gt 0 ]]; do
       fi
 
       if ! contains_project "$PROJ" ; then
-        if [ "$PROJ" == "clang-tools-extra" ] && [ ! contains_project "clang" ]; then
-          echo "Project 'clang-tools-extra' specified before 'clang'. Adding 'clang' to a list of projects first."
-          LLVM_PROJECTS="$LLVM_PROJECTS clang"
-        fi
         LLVM_PROJECTS="$LLVM_PROJECTS $PROJ"
       else
         echo "Project '$PROJ' is already enabled, ignoring extra occurrences."
@@ -115,8 +111,6 @@ for LLVM_PROJECT in $LLVM_PROJECTS; do
     CHECKOUT_DIR="$SOURCE_DIR/projects/$LLVM_PROJECT"
   elif [ "$LLVM_PROJECT" == "clang" ]; then
     CHECKOUT_DIR="$SOURCE_DIR/tools/clang"
-  elif [ "$LLVM_PROJECT" == "clang-tools-extra" ]; then
-    CHECKOUT_DIR="$SOURCE_DIR/tools/clang/tools/extra"
   else
     CHECKOUT_DIR="$SOURCE_DIR/$LLVM_PROJECT"
   fi

@@ -78,10 +78,6 @@ while [[ $# -gt 0 ]]; do
       fi
 
       if ! contains_project "$PROJ" ; then
-        if [ "$PROJ" == "clang-tools-extra" ] && [ ! contains_project "clang" ]; then
-          echo "Project 'clang-tools-extra' specified before 'clang'. Adding 'clang' to a list of projects first."
-          LLVM_PROJECTS="$LLVM_PROJECTS clang"
-        fi
         LLVM_PROJECTS="$LLVM_PROJECTS $PROJ"
       else
         echo "Project '$PROJ' is already enabled, ignoring extra occurrences."
@@ -143,11 +139,7 @@ for LLVM_PROJECT in $LLVM_PROJECTS; do
     SVN_PROJECT="$LLVM_PROJECT"
   fi
 
-  if [ "$SVN_PROJECT" != "clang-tools-extra" ]; then
-    CHECKOUT_DIR="$CLANG_BUILD_DIR/src/$LLVM_PROJECT"
-  else
-    CHECKOUT_DIR="$CLANG_BUILD_DIR/src/clang/tools/extra"
-  fi
+  CHECKOUT_DIR="$CLANG_BUILD_DIR/src/$LLVM_PROJECT"
 
   echo "Checking out https://llvm.org/svn/llvm-project/$SVN_PROJECT to $CHECKOUT_DIR"
   svn co -q $SVN_REV_ARG \

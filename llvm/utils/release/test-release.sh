@@ -206,7 +206,7 @@ if [ -z "$NumJobs" ]; then
 fi
 
 # Projects list
-projects="llvm cfe clang-tools-extra"
+projects="llvm cfe"
 if [ $do_rt = "yes" ]; then
   projects="$projects compiler-rt"
 fi
@@ -304,9 +304,6 @@ function export_sources() {
             ;;
         lld|lldb|polly)
             projsrc=llvm.src/tools/$proj
-            ;;
-        clang-tools-extra)
-            projsrc=llvm.src/tools/clang/tools/extra
             ;;
         compiler-rt|libcxx|libcxxabi|libunwind|openmp)
             projsrc=llvm.src/projects/$proj

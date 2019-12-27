@@ -25,13 +25,3 @@ if(CLANG_ENABLE_STATIC_ANALYZER)
   add_clang_subdirectory(scan-build)
   add_clang_subdirectory(scan-view)
 endif()
-
-# We support checking out the clang-tools-extra repository into the 'extra'
-# subdirectory. It contains tools developed as part of the Clang/LLVM project
-# on top of the Clang tooling platform. We keep them in a separate repository
-# to keep the primary Clang repository small and focused.
-# It also may be included by LLVM_EXTERNAL_CLANG_TOOLS_EXTRA_SOURCE_DIR.
-add_llvm_external_project(clang-tools-extra extra)
-
-# libclang may require clang-tidy in clang-tools-extra.
-add_clang_subdirectory(libclang)
