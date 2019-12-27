@@ -1,7 +1,6 @@
 DismalTC is a toolchain. It's licensed under the University of Illinois/NCSA Open Source (UIUC) License.
 
-
-## misc
+## references
 
 - Compilers in OpenBSD: https://marc.info/?l=openbsd-misc&m=137530560232232&w=2
 - boringcc: https://groups.google.com/forum/#!msg/boring-crypto/48qa1kWignU/o8GGp2K1DAAJ
