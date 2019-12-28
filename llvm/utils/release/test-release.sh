@@ -32,9 +32,6 @@ do_debug="no"
 do_asserts="no"
 do_compare="yes"
 do_rt="yes"
-do_libs="yes"
-do_libcxxabi="yes"
-do_libunwind="yes"
 do_test_suite="yes"
 do_openmp="yes"
 do_lld="yes"
@@ -62,9 +59,6 @@ function usage() {
     echo " -svn-path DIR        Use the specified DIR instead of a release."
     echo "                      For example -svn-path trunk or -svn-path branches/release_37"
     echo " -no-rt               Disable check-out & build Compiler-RT"
-    echo " -no-libs             Disable check-out & build libcxx/libcxxabi/libunwind"
-    echo " -no-libcxxabi        Disable check-out & build libcxxabi"
-    echo " -no-libunwind        Disable check-out & build libunwind"
     echo " -no-test-suite       Disable check-out & build test-suite"
     echo " -no-openmp           Disable check-out & build libomp"
     echo " -no-lld              Disable check-out & build lld"
@@ -134,15 +128,6 @@ while [ $# -gt 0 ]; do
         -no-rt )
             do_rt="no"
             ;;
-        -no-libs )
-            do_libs="no"
-            ;;
-        -no-libcxxabi )
-            do_libcxxabi="no"
-            ;;
-        -no-libunwind )
-            do_libunwind="no"
-            ;;
         -no-test-suite )
             do_test_suite="no"
             ;;
@@ -209,15 +194,6 @@ fi
 projects="llvm cfe"
 if [ $do_rt = "yes" ]; then
   projects="$projects compiler-rt"
-fi
-if [ $do_libs = "yes" ]; then
-  projects="$projects libcxx"
-  if [ $do_libcxxabi = "yes" ]; then
-    projects="$projects libcxxabi"
-  fi
-  if [ $do_libunwind = "yes" ]; then
-    projects="$projects libunwind"
-  fi
 fi
 case $do_test_suite in
   yes|export-only)
@@ -305,7 +281,7 @@ function export_sources() {
         lld|lldb|polly)
             projsrc=llvm.src/tools/$proj
             ;;
-        compiler-rt|libcxx|libcxxabi|libunwind|openmp)
+        compiler-rt|openmp)
             projsrc=llvm.src/projects/$proj
             ;;
         test-suite)
