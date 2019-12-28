@@ -1,4 +1,4 @@
-DismalTC is a toolchain. It's licensed under the University of Illinois/NCSA Open Source (UIUC) License.
+DismalTC is a toolchain.
 
 ## references
 
