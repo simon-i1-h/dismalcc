@@ -61,8 +61,6 @@ tools/clang
 tools/lldb
 # lld, which is tracked independently.
 tools/lld
-# llgo, which is tracked independently.
-tools/llgo
 # Polly, which is tracked independently.
 tools/polly
 # avrlit, which is tracked independently.
@@ -74,9 +72,3 @@ docs/_build
 .vs
 # clangd index
 .clangd
-
-#==============================================================================#
-# Files created in tree by the Go bindings.
-#==============================================================================#
-bindings/go/llvm/llvm_config.go
-bindings/go/llvm/workdir
