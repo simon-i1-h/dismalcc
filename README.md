@@ -9,3 +9,4 @@ DismalTC is a toolchain.
 - OpenBSD Copyright Policy: https://www.openbsd.org/policy.html
 - https://twitter.com/KarelGardas/status/1089623094338207744
 - https://twitter.com/bluerise/status/1089624654355017728
+- The death of optimizing compilers: https://blog.cr.yp.to/20150314-optimizing.html
