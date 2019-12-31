@@ -47,7 +47,6 @@ GIT_TO_SVN_DIR = {
         'compiler-rt',
         'debuginfo-tests',
         'klee',
-        'libclc',
         'lld',
         'lldb',
         'llgo',
