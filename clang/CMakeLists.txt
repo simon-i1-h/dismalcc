@@ -515,7 +515,8 @@ if( CLANG_INCLUDE_TESTS )
       )
   endif()
   add_subdirectory(test)
-  add_subdirectory(bindings/python/tests)
+  # XXX WORKAROUND: for cmake configure
+  #add_subdirectory(bindings/python/tests)
 
   if(CLANG_BUILT_STANDALONE)
     # Add a global check rule now that all subdirectories have been traversed

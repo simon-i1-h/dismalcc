@@ -1,0 +1,5 @@
+$ cd $REPOROOT
+$ mkdir _build
+$ cd _build
+$ cmake -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_DOCS=OFF -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_ENABLE_PROJECTS=clang -G 'Unix Makefiles' ../llvm
+$ make -j$n
