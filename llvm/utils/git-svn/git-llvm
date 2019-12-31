@@ -53,7 +53,6 @@ GIT_TO_SVN_DIR = {
         'lldb',
         'llgo',
         'llvm',
-        'openmp',
     ]
 }
 GIT_TO_SVN_DIR.update({'clang': 'cfe/branches/release_80'})

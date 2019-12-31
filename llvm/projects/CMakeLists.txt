@@ -7,7 +7,6 @@ foreach(entry ${entries})
     if((NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/compiler-rt) AND
        (NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/dragonegg) AND
        (NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/test-suite) AND
-       (NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/openmp) AND
        (NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/debuginfo-tests))
       get_filename_component(entry_name "${entry}" NAME)
       add_llvm_external_project(${entry_name})
@@ -24,7 +23,6 @@ if(${LLVM_BUILD_RUNTIME})
 endif()
 
 add_llvm_external_project(dragonegg)
-add_llvm_external_project(openmp)
 
 if(LLVM_INCLUDE_TESTS)
   add_llvm_external_project(debuginfo-tests)

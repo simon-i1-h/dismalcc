@@ -14,7 +14,7 @@
 
 set -e
 
-projects="llvm cfe test-suite compiler-rt lldb lld openmp"
+projects="llvm cfe test-suite compiler-rt lldb lld"
 base_url="https://llvm.org/svn/llvm-project"
 
 release=""

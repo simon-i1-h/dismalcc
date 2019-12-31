@@ -33,7 +33,6 @@ do_asserts="no"
 do_compare="yes"
 do_rt="yes"
 do_test_suite="yes"
-do_openmp="yes"
 do_lld="yes"
 do_lldb="no"
 BuildDir="`pwd`"
@@ -59,7 +58,6 @@ function usage() {
     echo "                      For example -svn-path trunk or -svn-path branches/release_37"
     echo " -no-rt               Disable check-out & build Compiler-RT"
     echo " -no-test-suite       Disable check-out & build test-suite"
-    echo " -no-openmp           Disable check-out & build libomp"
     echo " -no-lld              Disable check-out & build lld"
     echo " -lldb                Enable check-out & build lldb"
     echo " -no-lldb             Disable check-out & build lldb (default)"
@@ -129,9 +127,6 @@ while [ $# -gt 0 ]; do
         -no-test-suite )
             do_test_suite="no"
             ;;
-        -no-openmp )
-            do_openmp="no"
-            ;;
         -no-lld )
             do_lld="no"
             ;;
@@ -195,9 +190,6 @@ case $do_test_suite in
     projects="$projects test-suite"
     ;;
 esac
-if [ $do_openmp = "yes" ]; then
-  projects="$projects openmp"
-fi
 if [ $do_lld = "yes" ]; then
   projects="$projects lld"
 fi
@@ -273,7 +265,7 @@ function export_sources() {
         lld|lldb)
             projsrc=llvm.src/tools/$proj
             ;;
-        compiler-rt|openmp)
+        compiler-rt)
             projsrc=llvm.src/projects/$proj
             ;;
         test-suite)
