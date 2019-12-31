@@ -36,7 +36,6 @@ do_test_suite="yes"
 do_openmp="yes"
 do_lld="yes"
 do_lldb="no"
-do_polly="yes"
 BuildDir="`pwd`"
 ExtraConfigureFlags=""
 ExportBranch=""
@@ -64,7 +63,6 @@ function usage() {
     echo " -no-lld              Disable check-out & build lld"
     echo " -lldb                Enable check-out & build lldb"
     echo " -no-lldb             Disable check-out & build lldb (default)"
-    echo " -no-polly            Disable check-out & build Polly"
 }
 
 while [ $# -gt 0 ]; do
@@ -143,9 +141,6 @@ while [ $# -gt 0 ]; do
         -no-lldb )
             do_lldb="no"
             ;;
-        -no-polly )
-            do_polly="no"
-            ;;
         -help | --help | -h | --h | -\? )
             usage
             exit 0
@@ -208,9 +203,6 @@ if [ $do_lld = "yes" ]; then
 fi
 if [ $do_lldb = "yes" ]; then
   projects="$projects lldb"
-fi
-if [ $do_polly = "yes" ]; then
-  projects="$projects polly"
 fi
 
 # Go to the build directory (may be different from CWD)
@@ -278,7 +270,7 @@ function export_sources() {
         cfe)
             projsrc=llvm.src/tools/clang
             ;;
-        lld|lldb|polly)
+        lld|lldb)
             projsrc=llvm.src/tools/$proj
             ;;
         compiler-rt|openmp)

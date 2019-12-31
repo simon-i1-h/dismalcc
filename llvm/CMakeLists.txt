@@ -104,7 +104,7 @@ endif()
 # LLVM_EXTERNAL_${project}_SOURCE_DIR using LLVM_ALL_PROJECTS
 # This allows an easy way of setting up a build directory for llvm and another
 # one for llvm+clang+... using the same sources.
-set(LLVM_ALL_PROJECTS "clang;lldb;compiler-rt;lld;polly;debuginfo-tests")
+set(LLVM_ALL_PROJECTS "clang;lldb;compiler-rt;lld;debuginfo-tests")
 set(LLVM_ENABLE_PROJECTS "" CACHE STRING
 	"Semicolon-separated list of projects to build (${LLVM_ALL_PROJECTS}), or \"all\".")
 if( LLVM_ENABLE_PROJECTS STREQUAL "all" )
@@ -430,28 +430,11 @@ set(LLVM_LIB_FUZZING_ENGINE "" CACHE PATH
 option(LLVM_USE_SPLIT_DWARF
   "Use -gsplit-dwarf when compiling llvm." OFF)
 
-option(LLVM_POLLY_LINK_INTO_TOOLS "Statically link Polly into tools (if available)" ON)
-option(LLVM_POLLY_BUILD "Build LLVM with Polly" ON)
+option(LLVM_POLLY_LINK_INTO_TOOLS "Statically link Polly into tools (if available)" OFF)
+option(LLVM_POLLY_BUILD "Build LLVM with Polly" OFF)
 
-if (EXISTS ${LLVM_MAIN_SRC_DIR}/tools/polly/CMakeLists.txt)
-  set(POLLY_IN_TREE TRUE)
-elseif(LLVM_EXTERNAL_POLLY_SOURCE_DIR)
-  set(POLLY_IN_TREE TRUE)
-else()
-  set(POLLY_IN_TREE FALSE)
-endif()
-
-if (LLVM_POLLY_BUILD AND POLLY_IN_TREE)
-  set(WITH_POLLY ON)
-else()
-  set(WITH_POLLY OFF)
-endif()
-
-if (LLVM_POLLY_LINK_INTO_TOOLS AND WITH_POLLY)
-  set(LINK_POLLY_INTO_TOOLS ON)
-else()
-  set(LINK_POLLY_INTO_TOOLS OFF)
-endif()
+set(WITH_POLLY OFF)
+set(LINK_POLLY_INTO_TOOLS OFF)
 
 # Define an option controlling whether we should build for 32-bit on 64-bit
 # platforms, where supported.

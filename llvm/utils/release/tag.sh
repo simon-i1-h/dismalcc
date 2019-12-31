@@ -18,7 +18,7 @@ release=""
 rc=""
 rebranch="no"
 # All the projects that make it into the monorepo, plus test-suite.
-projects="monorepo-root cfe compiler-rt debuginfo-tests libclc lld lldb llvm openmp polly test-suite"
+projects="monorepo-root cfe compiler-rt debuginfo-tests libclc lld lldb llvm openmp test-suite"
 dryrun=""
 revision="HEAD"
 
