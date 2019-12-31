@@ -5,7 +5,6 @@ file(GLOB entries *)
 foreach(entry ${entries})
   if(IS_DIRECTORY ${entry} AND EXISTS ${entry}/CMakeLists.txt)
     if((NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/compiler-rt) AND
-       (NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/dragonegg) AND
        (NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/test-suite) AND
        (NOT ${entry} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}/debuginfo-tests))
       get_filename_component(entry_name "${entry}" NAME)
@@ -21,8 +20,6 @@ if(${LLVM_BUILD_RUNTIME})
     add_llvm_external_project(compiler-rt)
   endif()
 endif()
-
-add_llvm_external_project(dragonegg)
 
 if(LLVM_INCLUDE_TESTS)
   add_llvm_external_project(debuginfo-tests)

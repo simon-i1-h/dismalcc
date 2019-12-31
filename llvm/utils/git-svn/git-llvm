@@ -46,7 +46,6 @@ GIT_TO_SVN_DIR = {
     for d in [
         'compiler-rt',
         'debuginfo-tests',
-        'dragonegg',
         'klee',
         'libclc',
         'lld',
