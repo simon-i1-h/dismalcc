@@ -1,3 +1,7 @@
+0.2 (xxxx/xx/xx):
+- remove clang bindings, clang-refactor, clang-rename, and
+  clang-format.
+
 0.1 (2020/1/1):
 - remove clang-tools-extra, llgo, pstl, parallel-libs, libcxx,
   libcxxabi, libunwind, polly, openmp, and libclc.
