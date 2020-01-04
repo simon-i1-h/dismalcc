@@ -166,7 +166,6 @@ set(LLVM_BINARY_DIR       ${CMAKE_CURRENT_BINARY_DIR}  ) # --prefix
 
 # Note: LLVM_CMAKE_PATH does not include generated files
 set(LLVM_CMAKE_PATH ${LLVM_MAIN_SRC_DIR}/cmake/modules)
-set(LLVM_EXAMPLES_BINARY_DIR ${LLVM_BINARY_DIR}/examples)
 set(LLVM_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 # List of all targets to be built by default:
@@ -307,7 +306,7 @@ endif()
 set(LLVM_LIT_ARGS "${LIT_ARGS_DEFAULT}" CACHE STRING "Default options for lit")
 
 # Define options to control the inclusion and default build behavior for
-# components which may not strictly be necessary (tools, examples, and tests).
+# components which may not strictly be necessary (tools and tests).
 #
 # This is primarily to support building smaller or faster project files.
 option(LLVM_INCLUDE_TOOLS "Generate build targets for the LLVM tools." ON)
@@ -324,9 +323,6 @@ option(LLVM_BUILD_RUNTIMES
 
 option(LLVM_BUILD_RUNTIME
   "Build the LLVM runtime libraries." ON)
-option(LLVM_BUILD_EXAMPLES
-  "Build the LLVM example programs. If OFF, just generate build targets." OFF)
-option(LLVM_INCLUDE_EXAMPLES "Generate build targets for the LLVM examples" ON)
 
 option(LLVM_BUILD_TESTS
   "Build LLVM unit tests. If OFF, just generate build targets." OFF)
@@ -679,10 +675,6 @@ endif()
 
 if( LLVM_INCLUDE_RUNTIMES )
   add_subdirectory(runtimes)
-endif()
-
-if( LLVM_INCLUDE_EXAMPLES )
-  add_subdirectory(examples)
 endif()
 
 if( LLVM_INCLUDE_TESTS )
