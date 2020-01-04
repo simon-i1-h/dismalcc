@@ -11,29 +11,14 @@ if(POLICY CMP0075)
   cmake_policy(SET CMP0075 NEW)
 endif()
 
-if(NOT DEFINED LLVM_VERSION_MAJOR)
-  set(LLVM_VERSION_MAJOR 8)
-endif()
-if(NOT DEFINED LLVM_VERSION_MINOR)
-  set(LLVM_VERSION_MINOR 0)
-endif()
-if(NOT DEFINED LLVM_VERSION_PATCH)
-  set(LLVM_VERSION_PATCH 1)
-endif()
-if(NOT DEFINED LLVM_VERSION_SUFFIX)
-  set(LLVM_VERSION_SUFFIX "")
-endif()
+set(LLVM_VERSION_MAJOR 8)
+set(LLVM_VERSION_MINOR 0)
+set(LLVM_VERSION_PATCH 1)
+set(LLVM_VERSION_SUFFIX "dismal")
 
 if (NOT PACKAGE_VERSION)
   set(PACKAGE_VERSION
     "${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}.${LLVM_VERSION_PATCH}${LLVM_VERSION_SUFFIX}")
-endif()
-
-if ((CMAKE_GENERATOR MATCHES "Visual Studio") AND (CMAKE_GENERATOR_TOOLSET STREQUAL ""))
-  message(WARNING "Visual Studio generators use the x86 host compiler by "
-                  "default, even for 64-bit targets. This can result in linker "
-                  "instability and out of memory errors. To use the 64-bit "
-                  "host compiler, pass -Thost=x64 on the CMake command line.")
 endif()
 
 project(LLVM
@@ -45,66 +30,11 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type (default Debug)" FORCE)
 endif()
 
-# This should only apply if you are both on an Apple host, and targeting Apple.
-if(CMAKE_HOST_APPLE AND APPLE)
-  # if CMAKE_LIBTOOL is not set, try and find it with xcrun or find_program
-  if(NOT CMAKE_LIBTOOL)
-    if(NOT CMAKE_XCRUN)
-      find_program(CMAKE_XCRUN NAMES xcrun)
-    endif()
-    if(CMAKE_XCRUN)
-      execute_process(COMMAND ${CMAKE_XCRUN} -find libtool
-        OUTPUT_VARIABLE CMAKE_LIBTOOL
-        OUTPUT_STRIP_TRAILING_WHITESPACE)
-    endif()
-
-    if(NOT CMAKE_LIBTOOL OR NOT EXISTS CMAKE_LIBTOOL)
-      find_program(CMAKE_LIBTOOL NAMES libtool)
-    endif()
-  endif()
-
-  get_property(languages GLOBAL PROPERTY ENABLED_LANGUAGES)
-  if(CMAKE_LIBTOOL)
-    set(CMAKE_LIBTOOL ${CMAKE_LIBTOOL} CACHE PATH "libtool executable")
-    message(STATUS "Found libtool - ${CMAKE_LIBTOOL}")
-
-    execute_process(COMMAND ${CMAKE_LIBTOOL} -V
-      OUTPUT_VARIABLE LIBTOOL_V_OUTPUT
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
-    if("${LIBTOOL_V_OUTPUT}" MATCHES ".*cctools-([0-9.]+).*")
-      string(REGEX REPLACE ".*cctools-([0-9.]+).*" "\\1" LIBTOOL_VERSION
-        ${LIBTOOL_V_OUTPUT})
-      if(NOT LIBTOOL_VERSION VERSION_LESS "862")
-        set(LIBTOOL_NO_WARNING_FLAG "-no_warning_for_no_symbols")
-      endif()
-    endif()
-
-    foreach(lang ${languages})
-      set(CMAKE_${lang}_CREATE_STATIC_LIBRARY
-        "\"${CMAKE_LIBTOOL}\" -static ${LIBTOOL_NO_WARNING_FLAG} -o <TARGET> \
-        <LINK_FLAGS> <OBJECTS> ")
-    endforeach()
-  endif()
-
-  # If DYLD_LIBRARY_PATH is set we need to set it on archiver commands
-  if(DYLD_LIBRARY_PATH)
-    set(dyld_envar "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}")
-    foreach(lang ${languages})
-      foreach(cmd ${CMAKE_${lang}_CREATE_STATIC_LIBRARY})
-        list(APPEND CMAKE_${lang}_CREATE_STATIC_LIBRARY_NEW
-             "${dyld_envar} ${cmd}")
-      endforeach()
-      set(CMAKE_${lang}_CREATE_STATIC_LIBRARY
-        ${CMAKE_${lang}_CREATE_STATIC_LIBRARY_NEW})
-    endforeach()
-  endif()
-endif()
-
 # Side-by-side subprojects layout: automatically set the
 # LLVM_EXTERNAL_${project}_SOURCE_DIR using LLVM_ALL_PROJECTS
 # This allows an easy way of setting up a build directory for llvm and another
 # one for llvm+clang+... using the same sources.
-set(LLVM_ALL_PROJECTS "clang;lldb;compiler-rt;lld;debuginfo-tests")
+set(LLVM_ALL_PROJECTS "clang;lldb;compiler-rt;lld")
 set(LLVM_ENABLE_PROJECTS "" CACHE STRING
 	"Semicolon-separated list of projects to build (${LLVM_ALL_PROJECTS}), or \"all\".")
 if( LLVM_ENABLE_PROJECTS STREQUAL "all" )
@@ -119,43 +49,6 @@ foreach(proj ${LLVM_ENABLE_PROJECTS})
   STRING(REGEX REPLACE "-" "_" upper_proj ${upper_proj})
   set(LLVM_EXTERNAL_${upper_proj}_SOURCE_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/../${proj}")
 endforeach()
-
-# Build llvm with ccache if the package is present
-set(LLVM_CCACHE_BUILD OFF CACHE BOOL "Set to ON for a ccache enabled build")
-if(LLVM_CCACHE_BUILD)
-  find_program(CCACHE_PROGRAM ccache)
-  if(CCACHE_PROGRAM)
-      set(LLVM_CCACHE_MAXSIZE "" CACHE STRING "Size of ccache")
-      set(LLVM_CCACHE_DIR "" CACHE STRING "Directory to keep ccached data")
-      set(LLVM_CCACHE_PARAMS "CCACHE_CPP2=yes CCACHE_HASHDIR=yes"
-          CACHE STRING "Parameters to pass through to ccache")
-
-      set(CCACHE_PROGRAM "${LLVM_CCACHE_PARAMS} ${CCACHE_PROGRAM}")
-      if (LLVM_CCACHE_MAXSIZE)
-        set(CCACHE_PROGRAM "CCACHE_MAXSIZE=${LLVM_CCACHE_MAXSIZE} ${CCACHE_PROGRAM}")
-      endif()
-      if (LLVM_CCACHE_DIR)
-        set(CCACHE_PROGRAM "CCACHE_DIR=${LLVM_CCACHE_DIR} ${CCACHE_PROGRAM}")
-      endif()
-      set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ${CCACHE_PROGRAM})
-  else()
-    message(FATAL_ERROR "Unable to find the program ccache. Set LLVM_CCACHE_BUILD to OFF")
-  endif()
-endif()
-
-option(LLVM_DEPENDENCY_DEBUGGING "Dependency debugging mode to verify correctly expressed library dependencies (Darwin only)" OFF)
-
-# Some features of the LLVM build may be disallowed when dependency debugging is
-# enabled. In particular you cannot use ccache because we want to force compile
-# operations to always happen.
-if(LLVM_DEPENDENCY_DEBUGGING)
-  if(NOT CMAKE_HOST_APPLE)
-    message(FATAL_ERROR "Dependency debugging is only currently supported on Darwin hosts.")
-  endif()
-  if(LLVM_CCACHE_BUILD)
-    message(FATAL_ERROR "Cannot enable dependency debugging while using ccache.")
-  endif()
-endif()
 
 option(LLVM_ENABLE_DAGISEL_COV "Debug: Prints tablegen patterns that were used for selecting" OFF)
 option(LLVM_ENABLE_GISEL_COV "Enable collection of GlobalISel rule coverage" OFF)
@@ -383,43 +276,11 @@ option(LLVM_FORCE_USE_OLD_TOOLCHAIN
 option(LLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN
        "Set to ON to only warn when using a toolchain which is about to be deprecated, instead of emitting an error." OFF)
 
-option(LLVM_USE_INTEL_JITEVENTS
-  "Use Intel JIT API to inform Intel(R) VTune(TM) Amplifier XE 2011 about JIT code"
-  OFF)
-
-if( LLVM_USE_INTEL_JITEVENTS )
-  # Verify we are on a supported platform
-  if( NOT CMAKE_SYSTEM_NAME MATCHES "Windows" AND NOT CMAKE_SYSTEM_NAME MATCHES "Linux" )
-    message(FATAL_ERROR
-      "Intel JIT API support is available on Linux and Windows only.")
-  endif()
-endif( LLVM_USE_INTEL_JITEVENTS )
-
-option(LLVM_USE_OPROFILE
-  "Use opagent JIT interface to inform OProfile about JIT code" OFF)
-
 option(LLVM_EXTERNALIZE_DEBUGINFO
   "Generate dSYM files and strip executables and libraries (Darwin Only)" OFF)
 
 set(LLVM_CODESIGNING_IDENTITY "" CACHE STRING
   "Sign executables and dylibs with the given identity or skip if empty (Darwin Only)")
-
-# If enabled, verify we are on a platform that supports oprofile.
-if( LLVM_USE_OPROFILE )
-  if( NOT CMAKE_SYSTEM_NAME MATCHES "Linux" )
-    message(FATAL_ERROR "OProfile support is available on Linux only.")
-  endif( NOT CMAKE_SYSTEM_NAME MATCHES "Linux" )
-endif( LLVM_USE_OPROFILE )
-
-option(LLVM_USE_PERF
-  "Use perf JIT interface to inform perf about JIT code" OFF)
-
-# If enabled, verify we are on a platform that supports perf.
-if( LLVM_USE_PERF )
-  if( NOT CMAKE_SYSTEM_NAME MATCHES "Linux" )
-    message(FATAL_ERROR "perf support is available on Linux only.")
-  endif( NOT CMAKE_SYSTEM_NAME MATCHES "Linux" )
-endif( LLVM_USE_PERF )
 
 set(LLVM_USE_SANITIZER "" CACHE STRING
   "Define the sanitizer used to build binaries and tests.")
@@ -429,12 +290,6 @@ set(LLVM_LIB_FUZZING_ENGINE "" CACHE PATH
 
 option(LLVM_USE_SPLIT_DWARF
   "Use -gsplit-dwarf when compiling llvm." OFF)
-
-option(LLVM_POLLY_LINK_INTO_TOOLS "Statically link Polly into tools (if available)" OFF)
-option(LLVM_POLLY_BUILD "Build LLVM with Polly" OFF)
-
-set(WITH_POLLY OFF)
-set(LINK_POLLY_INTO_TOOLS OFF)
 
 # Define an option controlling whether we should build for 32-bit on 64-bit
 # platforms, where supported.
@@ -450,11 +305,6 @@ if (MSVC_IDE OR XCODE)
   set(LIT_ARGS_DEFAULT "${LIT_ARGS_DEFAULT} --no-progress-bar")
 endif()
 set(LLVM_LIT_ARGS "${LIT_ARGS_DEFAULT}" CACHE STRING "Default options for lit")
-
-# On Win32 hosts, provide an option to specify the path to the GnuWin32 tools.
-if( WIN32 AND NOT CYGWIN )
-  set(LLVM_LIT_TOOLS_DIR "" CACHE PATH "Path to GnuWin32 tools")
-endif()
 
 # Define options to control the inclusion and default build behavior for
 # components which may not strictly be necessary (tools, examples, and tests).
@@ -753,15 +603,6 @@ set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${LLVM_BINARY_DIR}/bin )
 set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${LLVM_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX} )
 set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${LLVM_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX} )
 
-if(APPLE AND DARWIN_LTO_LIBRARY)
-  set(CMAKE_EXE_LINKER_FLAGS
-    "${CMAKE_EXE_LINKER_FLAGS} -Wl,-lto_library -Wl,${DARWIN_LTO_LIBRARY}")
-  set(CMAKE_SHARED_LINKER_FLAGS
-    "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-lto_library -Wl,${DARWIN_LTO_LIBRARY}")
-  set(CMAKE_MODULE_LINKER_FLAGS
-    "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-lto_library -Wl,${DARWIN_LTO_LIBRARY}")
-endif()
-
 # Work around a broken bfd ld behavior. When linking a binary with a
 # foo.so library, it will try to find any library that foo.so uses and
 # check its symbols. This is wasteful (the check was done when foo.so
@@ -785,32 +626,12 @@ if(LLVM_TARGET_IS_CROSSCOMPILE_HOST)
 # (this is a variable that CrossCompile sets on recursive invocations)
 endif()
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "(FreeBSD|DragonFly)")
-  # On FreeBSD, /usr/local/* is not used by default. In order to build LLVM
-  # with libxml2, iconv.h, etc., we must add /usr/local paths.
-  include_directories(SYSTEM "/usr/local/include")
-  link_directories("/usr/local/lib")
-endif(${CMAKE_SYSTEM_NAME} MATCHES "(FreeBSD|DragonFly)")
-
-if( ${CMAKE_SYSTEM_NAME} MATCHES SunOS )
-   # special hack for Solaris to handle crazy system sys/regset.h
-   include_directories("${LLVM_MAIN_INCLUDE_DIR}/llvm/Support/Solaris")
-endif( ${CMAKE_SYSTEM_NAME} MATCHES SunOS )
-
 # Make sure we don't get -rdynamic in every binary. For those that need it,
 # use export_executable_symbols(target).
 set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
 set(LLVM_PROFDATA_FILE "" CACHE FILEPATH
   "Profiling data file to use when compiling in order to improve runtime performance.")
-
-if(LLVM_PROFDATA_FILE AND EXISTS ${LLVM_PROFDATA_FILE})
-  if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" )
-    add_definitions("-fprofile-instr-use=${LLVM_PROFDATA_FILE}")
-  else()
-    message(FATAL_ERROR "LLVM_PROFDATA_FILE can only be specified when compiling with clang")
-  endif()
-endif()
 
 include(AddLLVM)
 include(TableGen)
@@ -1027,11 +848,6 @@ if(LLVM_DISTRIBUTION_COMPONENTS)
                          " or you should manually create the 'install-${target}-stripped' target.")
     endif()
   endforeach()
-endif()
-
-# This allows us to deploy the Universal CRT DLLs by passing -DCMAKE_INSTALL_UCRT_LIBRARIES=ON to CMake
-if (MSVC AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows" AND CMAKE_INSTALL_UCRT_LIBRARIES)
-  include(InstallRequiredSystemLibraries)
 endif()
 
 if (LLVM_INCLUDE_BENCHMARKS)
