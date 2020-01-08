@@ -48,7 +48,6 @@ GIT_TO_SVN_DIR = {
         'debuginfo-tests',
         'klee',
         'lld',
-        'lldb',
         'llgo',
         'llvm',
     ]

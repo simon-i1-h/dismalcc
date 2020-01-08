@@ -70,7 +70,7 @@ def CreateLLVMProjects(single_tree_checkout):
       "compiler-rt", "test-suite"
   ]
   # Projects that reside inside 'tools/' in a single source tree checkout.
-  TOOLS_PROJECTS = ["clang", "lld", "lldb"]
+  TOOLS_PROJECTS = ["clang", "lld"]
 
   if single_tree_checkout:
     projects = [LLVMProject("llvm", "")]

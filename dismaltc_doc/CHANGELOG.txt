@@ -2,6 +2,9 @@
 - remove clang bindings and clang tools.
 - remove llvm bindings.
 - remove wasm linker.
+- remove lldb.
+  - We need lldb. However we remove lldb temporarily because we focus
+    clang, lld, etc.
 
 0.1 (2020/1/1):
 - remove clang-tools-extra, llgo, pstl, parallel-libs, libcxx,

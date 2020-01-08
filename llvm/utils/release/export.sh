@@ -14,7 +14,7 @@
 
 set -e
 
-projects="llvm cfe test-suite compiler-rt lldb lld"
+projects="llvm cfe test-suite compiler-rt lld"
 base_url="https://llvm.org/svn/llvm-project"
 
 release=""
