@@ -11,24 +11,15 @@ create_llvm_tool_options()
 
 # Build polly before the tools: the tools link against polly when
 # LINK_POLLY_INTO_TOOLS is set.
-if(WITH_POLLY)
-  add_llvm_external_project(polly)
-else()
-  set(LLVM_TOOL_POLLY_BUILD Off)
-endif()
+set(LLVM_TOOL_POLLY_BUILD Off)
 
 if(NOT LLVM_BUILD_LLVM_DYLIB AND NOT LLVM_BUILD_LLVM_C_DYLIB)
   set(LLVM_TOOL_LLVM_SHLIB_BUILD Off)
 endif()
 
-if(NOT LLVM_USE_INTEL_JITEVENTS )
-  set(LLVM_TOOL_LLVM_JITLISTENER_BUILD Off)
-endif()
-
-if(CYGWIN OR NOT LLVM_ENABLE_PIC)
-  set(LLVM_TOOL_LTO_BUILD Off)
-  set(LLVM_TOOL_LLVM_LTO_BUILD Off)
-endif()
+set(LLVM_TOOL_LLVM_JITLISTENER_BUILD Off)
+set(LLVM_TOOL_LTO_BUILD Off)
+set(LLVM_TOOL_LLVM_LTO_BUILD Off)
 
 # Add LTO, llvm-ar, llvm-config, and llvm-profdata before clang, ExternalProject
 # requires targets specified in DEPENDS to exist before the call to
