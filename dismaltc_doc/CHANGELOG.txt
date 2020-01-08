@@ -1,6 +1,10 @@
 0.2 (xxxx/xx/xx):
 - remove clang bindings and clang tools.
-- remove llvm bindings.
+  - We may need some tools. However we remove tools because we focus
+    clang, lld, etc.
+- remove llvm bindings and llvm tools.
+  - We may need some tools. However we remove tools because we focus
+    clang, lld, etc.
 - remove wasm linker.
 - remove lldb.
   - We need lldb. However we remove lldb temporarily because we focus
