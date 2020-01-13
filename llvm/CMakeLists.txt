@@ -16,6 +16,30 @@ set(LLVM_VERSION_MINOR 0)
 set(LLVM_VERSION_PATCH 1)
 set(LLVM_VERSION_SUFFIX "dismal")
 
+# WORKAROUND: for lld/CMakeLists.txt
+if (NOT PACKAGE_VERSION)
+  set(PACKAGE_VERSION
+    "${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}.${LLVM_VERSION_PATCH}${LLVM_VERSION_SUFFIX}")
+endif()
+
+project(LLVM
+  VERSION ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}.${LLVM_VERSION_PATCH}
+  LANGUAGES C CXX ASM)
+
+if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "No build type selected, default to Debug")
+  set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type (default Debug)" FORCE)
+endif()
+
+# Side-by-side subprojects layout: automatically set the
+# LLVM_EXTERNAL_${project}_SOURCE_DIR using LLVM_ALL_PROJECTS
+# This allows an easy way of setting up a build directory for llvm and another
+# one for llvm+clang+... using the same sources.
+set(LLVM_ALL_PROJECTS "clang;compiler-rt;lld")
+set(LLVM_ENABLE_PROJECTS "" CACHE STRING
+	"Semicolon-separated list of projects to build (${LLVM_ALL_PROJECTS}), or \"all\".")
+if( LLVM_ENABLE_PROJECTS STREQUAL "all" )
+  set( LLVM_ENABLE_PROJECTS ${LLVM_ALL_PROJECTS})
 endif()
 foreach(proj ${LLVM_ENABLE_PROJECTS})
   set(PROJ_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../${proj}")
