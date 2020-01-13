@@ -16,11 +16,6 @@ set(LLVM_VERSION_MINOR 0)
 set(LLVM_VERSION_PATCH 1)
 set(LLVM_VERSION_SUFFIX "dismal")
 
-if (NOT PACKAGE_VERSION)
-  set(PACKAGE_VERSION
-    "${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}.${LLVM_VERSION_PATCH}${LLVM_VERSION_SUFFIX}")
-endif()
-
 project(LLVM
   VERSION ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}.${LLVM_VERSION_PATCH}
   LANGUAGES C CXX ASM)
@@ -88,13 +83,6 @@ include(VersionFromVCS)
 
 option(LLVM_APPEND_VC_REV
   "Embed the version control system revision id in LLVM" ON)
-
-set(PACKAGE_NAME LLVM)
-set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
-set(PACKAGE_BUGREPORT "https://bugs.llvm.org/")
-
-set(BUG_REPORT_URL "${PACKAGE_BUGREPORT}" CACHE STRING
-  "Default URL where bug reports are to be submitted.")
 
 # Sanity check our source directory to make sure that we are not trying to
 # generate an in-source build (unless on MSVC_IDE, where it is ok), and to make
@@ -186,8 +174,6 @@ option(LLVM_ENABLE_CRASH_OVERRIDES "Enable crash overrides." ON)
 if(LLVM_ENABLE_CRASH_OVERRIDES)
   set(ENABLE_CRASH_OVERRIDES 1)
 endif()
-
-option(LLVM_ENABLE_CRASH_DUMPS "Turn on memory dumps on crashes. Currently only implemented on Windows." OFF)
 
 option(LLVM_ENABLE_FFI "Use libffi to call external functions from the interpreter" OFF)
 set(FFI_LIBRARY_DIR "" CACHE PATH "Additional directory, where CMake should search for libffi.so")
