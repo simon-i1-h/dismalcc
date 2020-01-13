@@ -4,6 +4,7 @@ DismalTC is a toolchain.
 
 - trimmed down
 - add pretty static analyzer
+- add more GNU C extensions. e.g. asm goto
 
 ## references
 
