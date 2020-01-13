@@ -1,5 +1,10 @@
 DismalTC is a toolchain.
 
+## TODO
+
+- trimmed down
+- add pretty static analyzer
+
 ## references
 
 - Compilers in OpenBSD: https://marc.info/?l=openbsd-misc&m=137530560232232&w=2
