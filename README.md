@@ -5,6 +5,7 @@ DismalTC is a toolchain.
 - trimmed down
 - add pretty static analyzer
 - add more GNU C extensions. e.g. asm goto
+- add "paranoia test" (ref. https://www.i-programmer.info/programming/cc/9212-finding-bugs-in-the-first-c-compiler-what-does-bjarne-think.html)
 
 ## references
 
