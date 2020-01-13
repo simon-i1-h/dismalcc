@@ -51,12 +51,6 @@ foreach(proj ${LLVM_ENABLE_PROJECTS})
   set(LLVM_EXTERNAL_${upper_proj}_SOURCE_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/../${proj}")
 endforeach()
 
-option(LLVM_ENABLE_DAGISEL_COV "Debug: Prints tablegen patterns that were used for selecting" OFF)
-option(LLVM_ENABLE_GISEL_COV "Enable collection of GlobalISel rule coverage" OFF)
-if(LLVM_ENABLE_GISEL_COV)
-  set(LLVM_GISEL_COV_PREFIX "${CMAKE_BINARY_DIR}/gisel-coverage-" CACHE STRING "Provide a filename prefix to collect the GlobalISel rule coverage")
-endif()
-
 # Add path for custom modules
 set(CMAKE_MODULE_PATH
   ${CMAKE_MODULE_PATH}
@@ -79,16 +73,6 @@ option(LLVM_INSTALL_TOOLCHAIN_ONLY "Only include toolchain files in the 'install
 # installed version of the maps to be found when building LLVM from source. Therefore we turn off
 # the installation by default. See llvm.org/PR31905.
 option(LLVM_INSTALL_MODULEMAPS "Install the modulemap files in the 'install' target." OFF)
-
-option(LLVM_USE_FOLDERS "Enable solution folders in Visual Studio. Disable for Express versions." ON)
-if ( LLVM_USE_FOLDERS )
-  set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-endif()
-
-include(VersionFromVCS)
-
-option(LLVM_APPEND_VC_REV
-  "Embed the version control system revision id in LLVM" ON)
 
 # WORKAROUND: for llvm/lib/Support/CommandLine.cpp
 set(PACKAGE_NAME LLVM)
