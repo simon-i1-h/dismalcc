@@ -14,7 +14,6 @@ main(int argc, char **argv)
 	case 0 ... 4:
 		/* computed goto */
 		goto *labels[n];
-		break;
 	default:
 		goto out;
 	}
