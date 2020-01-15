@@ -662,11 +662,8 @@ macro(add_llvm_library name)
         set(install_type LIBRARY)
       endif()
 
-      if(${name} IN_LIST LLVM_DISTRIBUTION_COMPONENTS OR
-          NOT LLVM_DISTRIBUTION_COMPONENTS)
-        set(export_to_llvmexports EXPORT LLVMExports)
-        set_property(GLOBAL PROPERTY LLVM_HAS_EXPORTS True)
-      endif()
+      set(export_to_llvmexports EXPORT LLVMExports)
+      set_property(GLOBAL PROPERTY LLVM_HAS_EXPORTS True)
 
       install(TARGETS ${name}
               ${export_to_llvmexports}
@@ -841,10 +838,6 @@ function(export_executable_symbols target)
     # the size of the exported symbol table, but on other platforms we can do
     # it without any trouble.
     set_target_properties(${target} PROPERTIES ENABLE_EXPORTS 1)
-    if (APPLE)
-      set_property(TARGET ${target} APPEND_STRING PROPERTY
-        LINK_FLAGS " -rdynamic")
-    endif()
   endif()
 endfunction()
 
@@ -867,11 +860,8 @@ macro(add_llvm_tool name)
 
   if ( ${name} IN_LIST LLVM_TOOLCHAIN_TOOLS OR NOT LLVM_INSTALL_TOOLCHAIN_ONLY)
     if( LLVM_BUILD_TOOLS )
-      if(${name} IN_LIST LLVM_DISTRIBUTION_COMPONENTS OR
-          NOT LLVM_DISTRIBUTION_COMPONENTS)
-        set(export_to_llvmexports EXPORT LLVMExports)
-        set_property(GLOBAL PROPERTY LLVM_HAS_EXPORTS True)
-      endif()
+      set(export_to_llvmexports EXPORT LLVMExports)
+      set_property(GLOBAL PROPERTY LLVM_HAS_EXPORTS True)
 
       install(TARGETS ${name}
               ${export_to_llvmexports}

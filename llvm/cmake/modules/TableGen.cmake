@@ -151,10 +151,7 @@ macro(add_tablegen target project)
   endif()
 
   if (${project} STREQUAL LLVM AND NOT LLVM_INSTALL_TOOLCHAIN_ONLY)
-    if(${target} IN_LIST LLVM_DISTRIBUTION_COMPONENTS OR
-        NOT LLVM_DISTRIBUTION_COMPONENTS)
-      set(export_to_llvmexports EXPORT LLVMExports)
-    endif()
+    set(export_to_llvmexports EXPORT LLVMExports)
 
     install(TARGETS ${target}
             ${export_to_llvmexports}
