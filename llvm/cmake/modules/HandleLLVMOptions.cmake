@@ -257,46 +257,6 @@ if( CMAKE_SIZEOF_VOID_P EQUAL 4 AND NOT LLVM_FORCE_SMALLFILE_FOR_ANDROID)
   add_definitions( -D_FILE_OFFSET_BITS=64 )
 endif()
 
-if( XCODE )
-  # For Xcode enable several build settings that correspond to
-  # many warnings that are on by default in Clang but are
-  # not enabled for historical reasons.  For versions of Xcode
-  # that do not support these options they will simply
-  # be ignored.
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_ABOUT_RETURN_TYPE "YES")
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_ABOUT_MISSING_NEWLINE "YES")
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_UNUSED_VALUE "YES")
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_UNUSED_VARIABLE "YES")
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_SIGN_COMPARE "YES")
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_UNUSED_FUNCTION "YES")
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_INITIALIZER_NOT_FULLY_BRACKETED "YES")
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_HIDDEN_VIRTUAL_FUNCTIONS "YES")
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_UNINITIALIZED_AUTOS "YES")
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_BOOL_CONVERSION "YES")
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_EMPTY_BODY "YES")
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_ENUM_CONVERSION "YES")
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_INT_CONVERSION "YES")
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_CONSTANT_CONVERSION "YES")
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_NON_VIRTUAL_DESTRUCTOR "YES")
-endif()
-
-# On Win32 using MS tools, provide an option to set the number of parallel jobs
-# to use.
-if( MSVC_IDE )
-  set(LLVM_COMPILER_JOBS "0" CACHE STRING
-    "Number of parallel compiler jobs. 0 means use all processors. Default is 0.")
-  if( NOT LLVM_COMPILER_JOBS STREQUAL "1" )
-    if( LLVM_COMPILER_JOBS STREQUAL "0" )
-      add_definitions( /MP )
-    else()
-      message(STATUS "Number of parallel compiler jobs set to " ${LLVM_COMPILER_JOBS})
-      add_definitions( /MP${LLVM_COMPILER_JOBS} )
-    endif()
-  else()
-    message(STATUS "Parallel compilation disabled")
-  endif()
-endif()
-
 # set stack reserved size to ~10MB
 if(MSVC)
   # CMake previously automatically set this value for MSVC builds, but the
@@ -315,102 +275,7 @@ elseif(MINGW) # FIXME: Also cygwin?
   endif()
 endif()
 
-if( MSVC )
-  if( CMAKE_CXX_COMPILER_VERSION VERSION_LESS 19.0 )
-    # For MSVC 2013, disable iterator null pointer checking in debug mode,
-    # especially so std::equal(nullptr, nullptr, nullptr) will not assert.
-    add_definitions("-D_DEBUG_POINTER_IMPL=")
-  endif()
-
-  include(ChooseMSVCCRT)
-
-  if( MSVC11 )
-    add_definitions(-D_VARIADIC_MAX=10)
-  endif()
-
-  # Add definitions that make MSVC much less annoying.
-  add_definitions(
-    # For some reason MS wants to deprecate a bunch of standard functions...
-    -D_CRT_SECURE_NO_DEPRECATE
-    -D_CRT_SECURE_NO_WARNINGS
-    -D_CRT_NONSTDC_NO_DEPRECATE
-    -D_CRT_NONSTDC_NO_WARNINGS
-    -D_SCL_SECURE_NO_DEPRECATE
-    -D_SCL_SECURE_NO_WARNINGS
-    )
-
-  # Tell MSVC to use the Unicode version of the Win32 APIs instead of ANSI.
-  add_definitions(
-    -DUNICODE
-    -D_UNICODE
-  )
-
-  if (LLVM_ENABLE_WERROR)
-    append("/WX" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
-  endif (LLVM_ENABLE_WERROR)
-
-  append("/Zc:inline" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
-
-  # Allow users to request PDBs in release mode. CMake offeres the
-  # RelWithDebInfo configuration, but it uses different optimization settings
-  # (/Ob1 vs /Ob2 or -O2 vs -O3). LLVM provides this flag so that users can get
-  # PDBs without changing codegen.
-  option(LLVM_ENABLE_PDB OFF)
-  if (LLVM_ENABLE_PDB AND uppercase_CMAKE_BUILD_TYPE STREQUAL "RELEASE")
-    append("/Zi" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
-    # /DEBUG disables linker GC and ICF, but we want those in Release mode.
-    append("/DEBUG /OPT:REF /OPT:ICF"
-          CMAKE_EXE_LINKER_FLAGS CMAKE_MODULE_LINKER_FLAGS
-          CMAKE_SHARED_LINKER_FLAGS)
-  endif()
-
-  # /Zc:strictStrings is incompatible with VS12's (Visual Studio 2013's)
-  # debug mode headers. Instead of only enabling them in VS2013's debug mode,
-  # we'll just enable them for Visual Studio 2015 (VS 14, MSVC_VERSION 1900)
-  # and up.
-  if (NOT (MSVC_VERSION LESS 1900))
-    # Disable string literal const->non-const type conversion.
-    # "When specified, the compiler requires strict const-qualification
-    # conformance for pointers initialized by using string literals."
-    append("/Zc:strictStrings" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
-  endif(NOT (MSVC_VERSION LESS 1900))
-
-  # "Generate Intrinsic Functions".
-  append("/Oi" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
-
-  # "Enforce type conversion rules".
-  append("/Zc:rvalueCast" CMAKE_CXX_FLAGS)
-
-  if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT LLVM_ENABLE_LTO)
-    # clang-cl and cl by default produce non-deterministic binaries because
-    # link.exe /incremental requires a timestamp in the .obj file.  clang-cl
-    # has the flag /Brepro to force deterministic binaries. We want to pass that
-    # whenever you're building with clang unless you're passing /incremental
-    # or using LTO (/Brepro with LTO would result in a warning about the flag
-    # being unused, because we're not generating object files).
-    # This checks CMAKE_CXX_COMPILER_ID in addition to check_cxx_compiler_flag()
-    # because cl.exe does not emit an error on flags it doesn't understand,
-    # letting check_cxx_compiler_flag() claim it understands all flags.
-    check_cxx_compiler_flag("/Brepro" SUPPORTS_BREPRO)
-    if (SUPPORTS_BREPRO)
-      # Check if /INCREMENTAL is passed to the linker and complain that it
-      # won't work with /Brepro.
-      string(TOUPPER "${CMAKE_EXE_LINKER_FLAGS}" upper_exe_flags)
-      string(TOUPPER "${CMAKE_MODULE_LINKER_FLAGS}" upper_module_flags)
-      string(TOUPPER "${CMAKE_SHARED_LINKER_FLAGS}" upper_shared_flags)
-
-      string(FIND "${upper_exe_flags} ${upper_module_flags} ${upper_shared_flags}"
-        "/INCREMENTAL" linker_flag_idx)
-
-      if (${linker_flag_idx} GREATER -1)
-        message(WARNING "/Brepro not compatible with /INCREMENTAL linking - builds will be non-deterministic")
-      else()
-        append("/Brepro" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
-      endif()
-    endif()
-  endif()
-
-elseif( LLVM_COMPILER_IS_GCC_COMPATIBLE )
+if( LLVM_COMPILER_IS_GCC_COMPATIBLE )
   append_if(LLVM_ENABLE_WERROR "-Werror" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
   append_if(LLVM_ENABLE_WERROR "-Wno-error" CMAKE_REQUIRED_FLAGS)
   add_flag_if_supported("-Werror=date-time" WERROR_DATE_TIME)
@@ -467,95 +332,7 @@ elseif( LLVM_COMPILER_IS_GCC_COMPATIBLE )
       message(FATAL_ERROR "LLVM_ENABLE_MODULES is not supported by this compiler")
     endif()
   endif(LLVM_ENABLE_MODULES)
-endif( MSVC )
-
-if (MSVC)
-  if (NOT CLANG_CL)
-    set(msvc_warning_flags
-      # Disabled warnings.
-      -wd4141 # Suppress ''modifier' : used more than once' (because of __forceinline combined with inline)
-      -wd4146 # Suppress 'unary minus operator applied to unsigned type, result still unsigned'
-      -wd4180 # Suppress 'qualifier applied to function type has no meaning; ignored'
-      -wd4244 # Suppress ''argument' : conversion from 'type1' to 'type2', possible loss of data'
-      -wd4258 # Suppress ''var' : definition from the for loop is ignored; the definition from the enclosing scope is used'
-      -wd4267 # Suppress ''var' : conversion from 'size_t' to 'type', possible loss of data'
-      -wd4291 # Suppress ''declaration' : no matching operator delete found; memory will not be freed if initialization throws an exception'
-      -wd4345 # Suppress 'behavior change: an object of POD type constructed with an initializer of the form () will be default-initialized'
-      -wd4351 # Suppress 'new behavior: elements of array 'array' will be default initialized'
-      -wd4355 # Suppress ''this' : used in base member initializer list'
-      -wd4456 # Suppress 'declaration of 'var' hides local variable'
-      -wd4457 # Suppress 'declaration of 'var' hides function parameter'
-      -wd4458 # Suppress 'declaration of 'var' hides class member'
-      -wd4459 # Suppress 'declaration of 'var' hides global declaration'
-      -wd4503 # Suppress ''identifier' : decorated name length exceeded, name was truncated'
-      -wd4624 # Suppress ''derived class' : destructor could not be generated because a base class destructor is inaccessible'
-      -wd4722 # Suppress 'function' : destructor never returns, potential memory leak
-      -wd4800 # Suppress ''type' : forcing value to bool 'true' or 'false' (performance warning)'
-      -wd4100 # Suppress 'unreferenced formal parameter'
-      -wd4127 # Suppress 'conditional expression is constant'
-      -wd4512 # Suppress 'assignment operator could not be generated'
-      -wd4505 # Suppress 'unreferenced local function has been removed'
-      -wd4610 # Suppress '<class> can never be instantiated'
-      -wd4510 # Suppress 'default constructor could not be generated'
-      -wd4702 # Suppress 'unreachable code'
-      -wd4245 # Suppress 'signed/unsigned mismatch'
-      -wd4706 # Suppress 'assignment within conditional expression'
-      -wd4310 # Suppress 'cast truncates constant value'
-      -wd4701 # Suppress 'potentially uninitialized local variable'
-      -wd4703 # Suppress 'potentially uninitialized local pointer variable'
-      -wd4389 # Suppress 'signed/unsigned mismatch'
-      -wd4611 # Suppress 'interaction between '_setjmp' and C++ object destruction is non-portable'
-      -wd4805 # Suppress 'unsafe mix of type <type> and type <type> in operation'
-      -wd4204 # Suppress 'nonstandard extension used : non-constant aggregate initializer'
-      -wd4577 # Suppress 'noexcept used with no exception handling mode specified; termination on exception is not guaranteed'
-      -wd4091 # Suppress 'typedef: ignored on left of '' when no variable is declared'
-          # C4592 is disabled because of false positives in Visual Studio 2015
-          # Update 1. Re-evaluate the usefulness of this diagnostic with Update 2.
-      -wd4592 # Suppress ''var': symbol will be dynamically initialized (implementation limitation)
-      -wd4319 # Suppress ''operator' : zero extending 'type' to 'type' of greater size'
-          # C4709 is disabled because of a bug with Visual Studio 2017 as of
-          # v15.8.8. Re-evaluate the usefulness of this diagnostic when the bug
-          # is fixed.
-      -wd4709 # Suppress comma operator within array index expression
-
-      # Ideally, we'd like this warning to be enabled, but MSVC 2013 doesn't
-      # support the 'aligned' attribute in the way that clang sources requires (for
-      # any code that uses the LLVM_ALIGNAS macro), so this is must be disabled to
-      # avoid unwanted alignment warnings.
-      # When we switch to requiring a version of MSVC that supports the 'alignas'
-      # specifier (MSVC 2015?) this warning can be re-enabled.
-      -wd4324 # Suppress 'structure was padded due to __declspec(align())'
-
-      # Promoted warnings.
-      -w14062 # Promote 'enumerator in switch of enum is not handled' to level 1 warning.
-
-      # Promoted warnings to errors.
-      -we4238 # Promote 'nonstandard extension used : class rvalue used as lvalue' to error.
-      )
-  endif(NOT CLANG_CL)
-
-  # Enable warnings
-  if (LLVM_ENABLE_WARNINGS)
-    # Put /W4 in front of all the -we flags. cl.exe doesn't care, but for
-    # clang-cl having /W4 after the -we flags will re-enable the warnings
-    # disabled by -we.
-    set(msvc_warning_flags "/W4 ${msvc_warning_flags}")
-    # CMake appends /W3 by default, and having /W3 followed by /W4 will result in
-    # cl : Command line warning D9025 : overriding '/W3' with '/W4'.  Since this is
-    # a command line warning and not a compiler warning, it cannot be suppressed except
-    # by fixing the command line.
-    string(REGEX REPLACE " /W[0-4]" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-    string(REGEX REPLACE " /W[0-4]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-
-    if (LLVM_ENABLE_PEDANTIC)
-      # No MSVC equivalent available
-    endif (LLVM_ENABLE_PEDANTIC)
-  endif (LLVM_ENABLE_WARNINGS)
-
-  foreach(flag ${msvc_warning_flags})
-    append("${flag}" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
-  endforeach(flag)
-endif (MSVC)
+endif( LLVM_COMPILER_IS_GCC_COMPATIBLE )
 
 if (LLVM_ENABLE_WARNINGS AND (LLVM_COMPILER_IS_GCC_COMPATIBLE OR CLANG_CL))
 
@@ -867,16 +644,7 @@ if(LLVM_LINK_LLVM_DYLIB AND LLVM_EXPORT_SYMBOLS_FOR_PLUGINS)
 endif()
 
 # Plugin support
-# FIXME: Make this configurable.
-if(WIN32 OR CYGWIN)
-  if(BUILD_SHARED_LIBS OR LLVM_BUILD_LLVM_DYLIB)
-    set(LLVM_ENABLE_PLUGINS ON)
-  else()
-    set(LLVM_ENABLE_PLUGINS OFF)
-  endif()
-else()
-  set(LLVM_ENABLE_PLUGINS ON)
-endif()
+set(LLVM_ENABLE_PLUGINS ON)
 
 # By default we should enable LLVM_ENABLE_IDE only for multi-configuration
 # generators. This option disables optional build system features that make IDEs
