@@ -176,18 +176,6 @@ list (APPEND CMAKE_MODULE_PATH "${LLD_SOURCE_DIR}/cmake/modules")
 
 include(AddLLD)
 
-option(LLD_USE_VTUNE
-       "Enable VTune user task tracking."
-       OFF)
-if (LLD_USE_VTUNE)
-  find_package(VTune)
-  if (VTUNE_FOUND)
-    include_directories(${VTune_INCLUDE_DIRS})
-    list(APPEND LLVM_COMMON_LIBS ${VTune_LIBRARIES})
-    add_definitions(-DLLD_HAS_VTUNE)
-  endif()
-endif()
-
 option(LLD_BUILD_TOOLS
   "Build the lld tools. If OFF, just generate build targets." ON)
 
