@@ -65,13 +65,6 @@ if(CLANG_ENABLE_STATIC_ANALYZER)
     )
 endif()
 
-if (CLANG_ENABLE_ARCMT)
-  list(APPEND CLANG_TEST_DEPS
-    arcmt-test
-    c-arcmt-test
-  )
-endif ()
-
 if (CLANG_BUILD_EXAMPLES)
   list(APPEND CLANG_TEST_DEPS
     AnnotateFunctions
