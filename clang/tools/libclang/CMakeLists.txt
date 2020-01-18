@@ -1,5 +1,4 @@
 set(SOURCES
-  ARCMigrate.cpp
   BuildSystem.cpp
   CIndex.cpp
   CIndexCXX.cpp
@@ -43,10 +42,6 @@ set(LIBS
   clangSerialization
   clangTooling
 )
-
-if (CLANG_ENABLE_ARCMT)
-  list(APPEND LIBS clangARCMigrate)
-endif ()
 
 if (TARGET clangTidyPlugin)
   add_definitions(-DCLANG_TOOL_EXTRA_BUILD)

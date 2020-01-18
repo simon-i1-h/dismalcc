@@ -258,10 +258,6 @@ public:
   /// @name Forwarding Methods
   /// {
 
-  AnalyzerOptionsRef getAnalyzerOpts() {
-    return Invocation->getAnalyzerOpts();
-  }
-
   CodeGenOptions &getCodeGenOpts() {
     return Invocation->getCodeGenOpts();
   }

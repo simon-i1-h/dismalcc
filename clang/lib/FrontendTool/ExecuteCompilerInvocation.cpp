@@ -12,7 +12,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "clang/ARCMigrate/ARCMTActions.h"
 #include "clang/CodeGen/CodeGenAction.h"
 #include "clang/Config/config.h"
 #include "clang/Driver/Options.h"
@@ -23,7 +22,6 @@
 #include "clang/Frontend/FrontendPluginRegistry.h"
 #include "clang/Frontend/Utils.h"
 #include "clang/FrontendTool/Utils.h"
-#include "clang/StaticAnalyzer/Frontend/FrontendActions.h"
 #include "llvm/Option/OptTable.h"
 #include "llvm/Option/Option.h"
 #include "llvm/Support/BuryPointer.h"
@@ -94,29 +92,26 @@ CreateFrontendBaseAction(CompilerInstance &CI) {
   case PrintPreprocessedInput: {
     return llvm::make_unique<PrintPreprocessedAction>();
   }
-
-#if CLANG_ENABLE_ARCMT
-  case MigrateSource:
-    return llvm::make_unique<arcmt::MigrateSourceAction>();
-#else
+  // disable ARC migrate
   case MigrateSource:          Action = "MigrateSource"; break;
-#endif
-#if CLANG_ENABLE_STATIC_ANALYZER
-  // XXX WORKAROUND: for build
-  //case RunAnalysis:            return llvm::make_unique<ento::AnalysisAction>();
-#else
+  // disable static analysis
   case RunAnalysis:            Action = "RunAnalysis"; break;
-#endif
   case RunPreprocessorOnly:    return llvm::make_unique<PreprocessOnlyAction>();
   }
 
-#if !CLANG_ENABLE_ARCMT || !CLANG_ENABLE_STATIC_ANALYZER \
+/* XXX ? */
+/*
+<hash> if !CLANG_ENABLE_ARCMT || !CLANG_ENABLE_STATIC_ANALYZER \
   || !CLANG_ENABLE_OBJC_REWRITER
   CI.getDiagnostics().Report(diag::err_fe_action_not_available) << Action;
   return 0;
-#else
+<hash> else
   llvm_unreachable("Invalid program action!");
-#endif
+<hash> endif
+*/
+
+CI.getDiagnostics().Report(diag::err_fe_action_not_available) << Action;
+return 0;
 }
 
 std::unique_ptr<FrontendAction>
@@ -132,35 +127,6 @@ CreateFrontendAction(CompilerInstance &CI) {
   //if (FEOpts.FixAndRecompile) {
   //  Act = llvm::make_unique<FixItRecompile>(std::move(Act));
   //}
-
-#if CLANG_ENABLE_ARCMT
-  if (CI.getFrontendOpts().ProgramAction != frontend::MigrateSource &&
-      CI.getFrontendOpts().ProgramAction != frontend::GeneratePCH) {
-    // Potentially wrap the base FE action in an ARC Migrate Tool action.
-    switch (FEOpts.ARCMTAction) {
-    case FrontendOptions::ARCMT_None:
-      break;
-    case FrontendOptions::ARCMT_Check:
-      Act = llvm::make_unique<arcmt::CheckAction>(std::move(Act));
-      break;
-    case FrontendOptions::ARCMT_Modify:
-      Act = llvm::make_unique<arcmt::ModifyAction>(std::move(Act));
-      break;
-    case FrontendOptions::ARCMT_Migrate:
-      Act = llvm::make_unique<arcmt::MigrateAction>(std::move(Act),
-                                     FEOpts.MTMigrateDir,
-                                     FEOpts.ARCMTMigrateReportOut,
-                                     FEOpts.ARCMTMigrateEmitARCErrors);
-      break;
-    }
-
-    if (FEOpts.ObjCMTAction != FrontendOptions::ObjCMT_None) {
-      Act = llvm::make_unique<arcmt::ObjCMigrateAction>(std::move(Act),
-                                                        FEOpts.MTMigrateDir,
-                                                        FEOpts.ObjCMTAction);
-    }
-  }
-#endif
 
   // If there are any AST files to merge, create a frontend action
   // adaptor to perform the merge.
@@ -225,30 +191,6 @@ bool ExecuteCompilerInvocation(CompilerInstance *Clang) {
     Args[NumArgs + 1] = nullptr;
     llvm::cl::ParseCommandLineOptions(NumArgs + 1, Args.get());
   }
-
-#if CLANG_ENABLE_STATIC_ANALYZER
-  // Honor -analyzer-checker-help.
-  // This should happen AFTER plugins have been loaded!
-  if (Clang->getAnalyzerOpts()->ShowCheckerHelp) {
-    ento::printCheckerHelp(llvm::outs(), Clang->getFrontendOpts().Plugins,
-                           Clang->getDiagnostics());
-    return true;
-  }
-
-  // Honor -analyzer-list-enabled-checkers.
-  if (Clang->getAnalyzerOpts()->ShowEnabledCheckerList) {
-    ento::printEnabledCheckerList(llvm::outs(),
-                                  Clang->getFrontendOpts().Plugins,
-                                  *Clang->getAnalyzerOpts(),
-                                  Clang->getDiagnostics());
-  }
-
-  // Honor -analyzer-config-help.
-  if (Clang->getAnalyzerOpts()->ShowConfigOptionsList) {
-    ento::printAnalyzerConfigList(llvm::outs());
-    return true;
-  }
-#endif
 
   // If there were errors in processing arguments, don't do anything else.
   if (Clang->getDiagnostics().hasErrorOccurred())

@@ -42,7 +42,6 @@
 #include "clang/Lex/PreprocessorOptions.h"
 #include "clang/Sema/CodeCompleteOptions.h"
 #include "clang/Serialization/ModuleFileExtension.h"
-#include "clang/StaticAnalyzer/Core/AnalyzerOptions.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/CachedHashString.h"
@@ -182,11 +181,6 @@ static void addDiagnosticArgs(ArgList &Args, OptSpecifier Group,
   }
 }
 
-// Parse the Static Analyzer configuration. If \p Diags is set to nullptr,
-// it won't verify the input.
-static void parseAnalyzerConfigs(AnalyzerOptions &AnOpts,
-                                 DiagnosticsEngine *Diags);
-
 static void getAllNoBuiltinFuncValues(ArgList &Args,
                                       std::vector<std::string> &Funcs) {
   SmallVector<const char *, 8> Values;
@@ -199,271 +193,6 @@ static void getAllNoBuiltinFuncValues(ArgList &Args,
     }
   }
   Funcs.insert(Funcs.end(), Values.begin(), Values.end());
-}
-
-static bool ParseAnalyzerArgs(AnalyzerOptions &Opts, ArgList &Args,
-                              DiagnosticsEngine &Diags) {
-  bool Success = true;
-  if (Arg *A = Args.getLastArg(OPT_analyzer_store)) {
-    StringRef Name = A->getValue();
-    AnalysisStores Value = llvm::StringSwitch<AnalysisStores>(Name)
-#define ANALYSIS_STORE(NAME, CMDFLAG, DESC, CREATFN) \
-      .Case(CMDFLAG, NAME##Model)
-#include "clang/StaticAnalyzer/Core/Analyses.def"
-      .Default(NumStores);
-    if (Value == NumStores) {
-      Diags.Report(diag::err_drv_invalid_value)
-        << A->getAsString(Args) << Name;
-      Success = false;
-    } else {
-      Opts.AnalysisStoreOpt = Value;
-    }
-  }
-
-  if (Arg *A = Args.getLastArg(OPT_analyzer_constraints)) {
-    StringRef Name = A->getValue();
-    AnalysisConstraints Value = llvm::StringSwitch<AnalysisConstraints>(Name)
-#define ANALYSIS_CONSTRAINTS(NAME, CMDFLAG, DESC, CREATFN) \
-      .Case(CMDFLAG, NAME##Model)
-#include "clang/StaticAnalyzer/Core/Analyses.def"
-      .Default(NumConstraints);
-    if (Value == NumConstraints) {
-      Diags.Report(diag::err_drv_invalid_value)
-        << A->getAsString(Args) << Name;
-      Success = false;
-    } else {
-      Opts.AnalysisConstraintsOpt = Value;
-    }
-  }
-
-  if (Arg *A = Args.getLastArg(OPT_analyzer_output)) {
-    StringRef Name = A->getValue();
-    AnalysisDiagClients Value = llvm::StringSwitch<AnalysisDiagClients>(Name)
-#define ANALYSIS_DIAGNOSTICS(NAME, CMDFLAG, DESC, CREATFN) \
-      .Case(CMDFLAG, PD_##NAME)
-#include "clang/StaticAnalyzer/Core/Analyses.def"
-      .Default(NUM_ANALYSIS_DIAG_CLIENTS);
-    if (Value == NUM_ANALYSIS_DIAG_CLIENTS) {
-      Diags.Report(diag::err_drv_invalid_value)
-        << A->getAsString(Args) << Name;
-      Success = false;
-    } else {
-      Opts.AnalysisDiagOpt = Value;
-    }
-  }
-
-  if (Arg *A = Args.getLastArg(OPT_analyzer_purge)) {
-    StringRef Name = A->getValue();
-    AnalysisPurgeMode Value = llvm::StringSwitch<AnalysisPurgeMode>(Name)
-#define ANALYSIS_PURGE(NAME, CMDFLAG, DESC) \
-      .Case(CMDFLAG, NAME)
-#include "clang/StaticAnalyzer/Core/Analyses.def"
-      .Default(NumPurgeModes);
-    if (Value == NumPurgeModes) {
-      Diags.Report(diag::err_drv_invalid_value)
-        << A->getAsString(Args) << Name;
-      Success = false;
-    } else {
-      Opts.AnalysisPurgeOpt = Value;
-    }
-  }
-
-  if (Arg *A = Args.getLastArg(OPT_analyzer_inlining_mode)) {
-    StringRef Name = A->getValue();
-    AnalysisInliningMode Value = llvm::StringSwitch<AnalysisInliningMode>(Name)
-#define ANALYSIS_INLINING_MODE(NAME, CMDFLAG, DESC) \
-      .Case(CMDFLAG, NAME)
-#include "clang/StaticAnalyzer/Core/Analyses.def"
-      .Default(NumInliningModes);
-    if (Value == NumInliningModes) {
-      Diags.Report(diag::err_drv_invalid_value)
-        << A->getAsString(Args) << Name;
-      Success = false;
-    } else {
-      Opts.InliningMode = Value;
-    }
-  }
-
-  Opts.ShowCheckerHelp = Args.hasArg(OPT_analyzer_checker_help);
-  Opts.ShowConfigOptionsList = Args.hasArg(OPT_analyzer_config_help);
-  Opts.ShowEnabledCheckerList = Args.hasArg(OPT_analyzer_list_enabled_checkers);
-  Opts.ShouldEmitErrorsOnInvalidConfigValue =
-      /* negated */!llvm::StringSwitch<bool>(
-                   Args.getLastArgValue(OPT_analyzer_config_compatibility_mode))
-        .Case("true", true)
-        .Case("false", false)
-        .Default(false);
-  Opts.DisableAllChecks = Args.hasArg(OPT_analyzer_disable_all_checks);
-
-  Opts.visualizeExplodedGraphWithGraphViz =
-    Args.hasArg(OPT_analyzer_viz_egraph_graphviz);
-  Opts.DumpExplodedGraphTo = Args.getLastArgValue(OPT_analyzer_dump_egraph);
-  Opts.NoRetryExhausted = Args.hasArg(OPT_analyzer_disable_retry_exhausted);
-  Opts.AnalyzeAll = Args.hasArg(OPT_analyzer_opt_analyze_headers);
-  Opts.AnalyzerDisplayProgress = Args.hasArg(OPT_analyzer_display_progress);
-  Opts.AnalyzeNestedBlocks =
-    Args.hasArg(OPT_analyzer_opt_analyze_nested_blocks);
-  Opts.AnalyzeSpecificFunction = Args.getLastArgValue(OPT_analyze_function);
-  Opts.UnoptimizedCFG = Args.hasArg(OPT_analysis_UnoptimizedCFG);
-  Opts.TrimGraph = Args.hasArg(OPT_trim_egraph);
-  Opts.maxBlockVisitOnPath =
-      getLastArgIntValue(Args, OPT_analyzer_max_loop, 4, Diags);
-  Opts.PrintStats = Args.hasArg(OPT_analyzer_stats);
-  Opts.InlineMaxStackDepth =
-      getLastArgIntValue(Args, OPT_analyzer_inline_max_stack_depth,
-                         Opts.InlineMaxStackDepth, Diags);
-
-  Opts.CheckersControlList.clear();
-  for (const Arg *A :
-       Args.filtered(OPT_analyzer_checker, OPT_analyzer_disable_checker)) {
-    A->claim();
-    bool enable = (A->getOption().getID() == OPT_analyzer_checker);
-    // We can have a list of comma separated checker names, e.g:
-    // '-analyzer-checker=cocoa,unix'
-    StringRef checkerList = A->getValue();
-    SmallVector<StringRef, 4> checkers;
-    checkerList.split(checkers, ",");
-    for (auto checker : checkers)
-      Opts.CheckersControlList.emplace_back(checker, enable);
-  }
-
-  // Go through the analyzer configuration options.
-  for (const auto *A : Args.filtered(OPT_analyzer_config)) {
-
-    // We can have a list of comma separated config names, e.g:
-    // '-analyzer-config key1=val1,key2=val2'
-    StringRef configList = A->getValue();
-    SmallVector<StringRef, 4> configVals;
-    configList.split(configVals, ",");
-    for (const auto &configVal : configVals) {
-      StringRef key, val;
-      std::tie(key, val) = configVal.split("=");
-      if (val.empty()) {
-        Diags.Report(SourceLocation(),
-                     diag::err_analyzer_config_no_value) << configVal;
-        Success = false;
-        break;
-      }
-      if (val.find('=') != StringRef::npos) {
-        Diags.Report(SourceLocation(),
-                     diag::err_analyzer_config_multiple_values)
-          << configVal;
-        Success = false;
-        break;
-      }
-
-      // TODO: Check checker options too, possibly in CheckerRegistry.
-      // Leave unknown non-checker configs unclaimed.
-      if (!key.contains(":") && Opts.isUnknownAnalyzerConfig(key)) {
-        if (Opts.ShouldEmitErrorsOnInvalidConfigValue)
-          Diags.Report(diag::err_analyzer_config_unknown) << key;
-        continue;
-      }
-
-      A->claim();
-      Opts.Config[key] = val;
-    }
-  }
-
-  if (Opts.ShouldEmitErrorsOnInvalidConfigValue)
-    parseAnalyzerConfigs(Opts, &Diags);
-  else
-    parseAnalyzerConfigs(Opts, nullptr);
-
-  llvm::raw_string_ostream os(Opts.FullCompilerInvocation);
-  for (unsigned i = 0; i < Args.getNumInputArgStrings(); ++i) {
-    if (i != 0)
-      os << " ";
-    os << Args.getArgString(i);
-  }
-  os.flush();
-
-  return Success;
-}
-
-static StringRef getStringOption(AnalyzerOptions::ConfigTable &Config,
-                                 StringRef OptionName, StringRef DefaultVal) {
-  return Config.insert({OptionName, DefaultVal}).first->second;
-}
-
-static void initOption(AnalyzerOptions::ConfigTable &Config,
-                       DiagnosticsEngine *Diags,
-                       StringRef &OptionField, StringRef Name,
-                       StringRef DefaultVal) {
-  // String options may be known to invalid (e.g. if the expected string is a
-  // file name, but the file does not exist), those will have to be checked in
-  // parseConfigs.
-  OptionField = getStringOption(Config, Name, DefaultVal);
-}
-
-static void initOption(AnalyzerOptions::ConfigTable &Config,
-                       DiagnosticsEngine *Diags,
-                       bool &OptionField, StringRef Name, bool DefaultVal) {
-  auto PossiblyInvalidVal = llvm::StringSwitch<Optional<bool>>(
-                 getStringOption(Config, Name, (DefaultVal ? "true" : "false")))
-      .Case("true", true)
-      .Case("false", false)
-      .Default(None);
-
-  if (!PossiblyInvalidVal) {
-    if (Diags)
-      Diags->Report(diag::err_analyzer_config_invalid_input)
-        << Name << "a boolean";
-    else
-      OptionField = DefaultVal;
-  } else
-    OptionField = PossiblyInvalidVal.getValue();
-}
-
-static void initOption(AnalyzerOptions::ConfigTable &Config,
-                       DiagnosticsEngine *Diags,
-                       unsigned &OptionField, StringRef Name,
-                       unsigned DefaultVal) {
-
-  OptionField = DefaultVal;
-  bool HasFailed = getStringOption(Config, Name, std::to_string(DefaultVal))
-                     .getAsInteger(10, OptionField);
-  if (Diags && HasFailed)
-    Diags->Report(diag::err_analyzer_config_invalid_input)
-      << Name << "an unsigned";
-}
-
-static void parseAnalyzerConfigs(AnalyzerOptions &AnOpts,
-                                 DiagnosticsEngine *Diags) {
-  // TODO: There's no need to store the entire configtable, it'd be plenty
-  // enough tostore checker options.
-
-#define ANALYZER_OPTION(TYPE, NAME, CMDFLAG, DESC, DEFAULT_VAL)                \
-  initOption(AnOpts.Config, Diags, AnOpts.NAME, CMDFLAG, DEFAULT_VAL);
-
-#define ANALYZER_OPTION_DEPENDS_ON_USER_MODE(TYPE, NAME, CMDFLAG, DESC,        \
-                                           SHALLOW_VAL, DEEP_VAL)              \
-  switch (AnOpts.getUserMode()) {                                              \
-  case UMK_Shallow:                                                            \
-    initOption(AnOpts.Config, Diags, AnOpts.NAME, CMDFLAG, SHALLOW_VAL);       \
-    break;                                                                     \
-  case UMK_Deep:                                                               \
-    initOption(AnOpts.Config, Diags, AnOpts.NAME, CMDFLAG, DEEP_VAL);          \
-    break;                                                                     \
-  }                                                                            \
-
-#include "clang/StaticAnalyzer/Core/AnalyzerOptions.def"
-#undef ANALYZER_OPTION
-#undef ANALYZER_OPTION_DEPENDS_ON_USER_MODE
-
-  // At this point, AnalyzerOptions is configured. Let's validate some options.
-
-  if (!Diags)
-    return;
-
-  if (!AnOpts.CTUDir.empty() && !llvm::sys::fs::is_directory(AnOpts.CTUDir))
-    Diags->Report(diag::err_analyzer_config_invalid_input) << "ctu-dir"
-                                                           << "a filename";
-
-  if (!AnOpts.ModelPath.empty() &&
-      !llvm::sys::fs::is_directory(AnOpts.ModelPath))
-    Diags->Report(diag::err_analyzer_config_invalid_input) << "model-path"
-                                                           << "a filename";
 }
 
 static bool ParseMigratorArgs(MigratorOptions &Opts, ArgList &Args) {
@@ -1653,8 +1382,6 @@ static InputKind ParseFrontendArgs(FrontendOptions &Opts, ArgList &Args,
       Opts.ProgramAction = frontend::RewriteObjC; break;
     case OPT_rewrite_test:
       Opts.ProgramAction = frontend::RewriteTest; break;
-    case OPT_analyze:
-      Opts.ProgramAction = frontend::RunAnalysis; break;
     case OPT_migrate:
       Opts.ProgramAction = frontend::MigrateSource; break;
     case OPT_Eonly:
@@ -3056,7 +2783,6 @@ static bool isStrictlyPreprocessorAction(frontend::ActionKind Action) {
   case frontend::PluginAction:
   case frontend::RewriteObjC:
   case frontend::RewriteTest:
-  case frontend::RunAnalysis:
   case frontend::TemplightDump:
   case frontend::MigrateSource:
     return false;
@@ -3259,7 +2985,6 @@ bool CompilerInvocation::CreateFromArgs(CompilerInvocation &Res,
     Success = false;
   }
 
-  Success &= ParseAnalyzerArgs(*Res.getAnalyzerOpts(), Args, Diags);
   Success &= ParseMigratorArgs(Res.getMigratorOpts(), Args);
   ParseDependencyOutputArgs(Res.getDependencyOutputOpts(), Args);
   Success &=

@@ -405,9 +405,6 @@ add_definitions( -D_GNU_SOURCE )
 option(CLANG_BUILD_TOOLS
   "Build the Clang tools. If OFF, just generate build targets." ON)
 
-option(CLANG_ENABLE_ARCMT "Build ARCMT." ON)
-option(CLANG_ENABLE_STATIC_ANALYZER "Build static analyzer." ON)
-
 set(CLANG_ANALYZER_Z3_INSTALL_DIR "" CACHE STRING "Install directory of the Z3 solver.")
 
 find_package(Z3 4.7.1)
@@ -434,14 +431,6 @@ if (CLANG_ANALYZER_ENABLE_Z3_SOLVER)
 endif()
 
 option(CLANG_ENABLE_PROTO_FUZZER "Build Clang protobuf fuzzer." OFF)
-
-if(NOT CLANG_ENABLE_STATIC_ANALYZER AND (CLANG_ENABLE_ARCMT OR CLANG_ANALYZER_ENABLE_Z3_SOLVER))
-  message(FATAL_ERROR "Cannot disable static analyzer while enabling ARCMT or Z3")
-endif()
-
-if(CLANG_ENABLE_ARCMT)
-  set(CLANG_ENABLE_OBJC_REWRITER ON)
-endif()
 
 # Clang version information
 set(CLANG_EXECUTABLE_VERSION

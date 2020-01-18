@@ -20,7 +20,6 @@
 #include "clang/Frontend/LangStandard.h"
 #include "clang/Frontend/MigratorOptions.h"
 #include "clang/Frontend/PreprocessorOutputOptions.h"
-#include "clang/StaticAnalyzer/Core/AnalyzerOptions.h"
 #include "llvm/ADT/IntrusiveRefCntPtr.h"
 #include <memory>
 #include <string>
@@ -119,9 +118,6 @@ public:
 /// compiler, including data such as the include paths, the code generation
 /// options, the warning flags, and so on.
 class CompilerInvocation : public CompilerInvocationBase {
-  /// Options controlling the static analyzer.
-  AnalyzerOptionsRef AnalyzerOpts;
-
   MigratorOptions MigratorOpts;
 
   /// Options controlling IRgen and the backend.
@@ -140,8 +136,6 @@ class CompilerInvocation : public CompilerInvocationBase {
   PreprocessorOutputOptions PreprocessorOutputOpts;
 
 public:
-  CompilerInvocation() : AnalyzerOpts(new AnalyzerOptions()) {}
-
   /// @name Utility Methods
   /// @{
 
@@ -186,8 +180,6 @@ public:
   /// @}
   /// @name Option Subgroups
   /// @{
-
-  AnalyzerOptionsRef getAnalyzerOpts() const { return AnalyzerOpts; }
 
   MigratorOptions &getMigratorOpts() { return MigratorOpts; }
   const MigratorOptions &getMigratorOpts() const { return MigratorOpts; }
