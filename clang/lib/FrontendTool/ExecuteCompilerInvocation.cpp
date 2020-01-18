@@ -43,7 +43,8 @@ CreateFrontendBaseAction(CompilerInstance &CI) {
   switch (CI.getFrontendOpts().ProgramAction) {
   case ASTDeclList:            return llvm::make_unique<ASTDeclListAction>();
   case ASTDump:                return llvm::make_unique<ASTDumpAction>();
-  case ASTPrint:               return llvm::make_unique<ASTPrintAction>();
+  // XXX WORKAROUND: for build
+  //case ASTPrint:               return llvm::make_unique<ASTPrintAction>();
   case ASTView:                return llvm::make_unique<ASTViewAction>();
   case DumpCompilerOptions:
     return llvm::make_unique<DumpCompilerOptionsAction>();
@@ -51,12 +52,12 @@ CreateFrontendBaseAction(CompilerInstance &CI) {
   case DumpTokens:             return llvm::make_unique<DumpTokensAction>();
   case EmitAssembly:           return llvm::make_unique<EmitAssemblyAction>();
   case EmitBC:                 return llvm::make_unique<EmitBCAction>();
-  case EmitHTML:               return llvm::make_unique<HTMLPrintAction>();
+  // XXX WORKAROUND: for build
+  //case EmitHTML:               return llvm::make_unique<HTMLPrintAction>();
   case EmitLLVM:               return llvm::make_unique<EmitLLVMAction>();
   case EmitLLVMOnly:           return llvm::make_unique<EmitLLVMOnlyAction>();
   case EmitCodeGenOnly:        return llvm::make_unique<EmitCodeGenOnlyAction>();
   case EmitObj:                return llvm::make_unique<EmitObjAction>();
-  case FixIt:                  return llvm::make_unique<FixItAction>();
   case GenerateModule:
     return llvm::make_unique<GenerateModuleFromModuleMapAction>();
   case GenerateModuleInterface:
@@ -101,7 +102,8 @@ CreateFrontendBaseAction(CompilerInstance &CI) {
   case MigrateSource:          Action = "MigrateSource"; break;
 #endif
 #if CLANG_ENABLE_STATIC_ANALYZER
-  case RunAnalysis:            return llvm::make_unique<ento::AnalysisAction>();
+  // XXX WORKAROUND: for build
+  //case RunAnalysis:            return llvm::make_unique<ento::AnalysisAction>();
 #else
   case RunAnalysis:            Action = "RunAnalysis"; break;
 #endif
@@ -126,9 +128,10 @@ CreateFrontendAction(CompilerInstance &CI) {
 
   const FrontendOptions &FEOpts = CI.getFrontendOpts();
 
-  if (FEOpts.FixAndRecompile) {
-    Act = llvm::make_unique<FixItRecompile>(std::move(Act));
-  }
+  // XXX WORKAROUND: for build
+  //if (FEOpts.FixAndRecompile) {
+  //  Act = llvm::make_unique<FixItRecompile>(std::move(Act));
+  //}
 
 #if CLANG_ENABLE_ARCMT
   if (CI.getFrontendOpts().ProgramAction != frontend::MigrateSource &&
