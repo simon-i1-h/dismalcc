@@ -176,10 +176,6 @@ def gTune_Group : OptionGroup<"<gTune group>">, Group<g_Group>,
 def g_flags_Group : OptionGroup<"<g flags group>">, Group<DebugInfo_Group>,
                     DocName<"Debug information flags">;
 
-def StaticAnalyzer_Group : OptionGroup<"<Static analyzer group>">,
-                           DocName<"Static analyzer flags">, DocBrief<[{
-Flags controlling the behavior of the Clang Static Analyzer.}]>;
-
 // gfortran options that we recognize in the driver and pass along when
 // invoking GCC to compile Fortran code.
 def gfortran_Group : OptionGroup<"<gfortran group>">,
@@ -454,9 +450,6 @@ def Wwrite_strings : Flag<["-"], "Wwrite-strings">, Group<W_Group>, Flags<[CC1Op
 def Wno_write_strings : Flag<["-"], "Wno-write-strings">, Group<W_Group>, Flags<[CC1Option, HelpHidden]>;
 def W_Joined : Joined<["-"], "W">, Group<W_Group>, Flags<[CC1Option, CoreOption]>,
   MetaVarName<"<warning>">, HelpText<"Enable the specified warning">;
-def Xanalyzer : Separate<["-"], "Xanalyzer">,
-  HelpText<"Pass <arg> to the static analyzer">, MetaVarName<"<arg>">,
-  Group<StaticAnalyzer_Group>;
 def Xarch__ : JoinedAndSeparate<["-"], "Xarch_">, Flags<[DriverOption]>;
 def Xassembler : Separate<["-"], "Xassembler">,
   HelpText<"Pass <arg> to the assembler">, MetaVarName<"<arg>">,
