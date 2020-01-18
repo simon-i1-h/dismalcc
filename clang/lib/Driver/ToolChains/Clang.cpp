@@ -2369,76 +2369,6 @@ static void RenderFloatingPointOptions(const ToolChain &TC, const Driver &D,
     CmdArgs.push_back("-fno-strict-float-cast-overflow");
 }
 
-static void RenderAnalyzerOptions(const ArgList &Args, ArgStringList &CmdArgs,
-                                  const llvm::Triple &Triple,
-                                  const InputInfo &Input) {
-  // Enable region store model by default.
-  CmdArgs.push_back("-analyzer-store=region");
-
-  // Treat blocks as analysis entry points.
-  CmdArgs.push_back("-analyzer-opt-analyze-nested-blocks");
-
-  // Add default argument set.
-  if (!Args.hasArg(options::OPT__analyzer_no_default_checks)) {
-    CmdArgs.push_back("-analyzer-checker=core");
-    CmdArgs.push_back("-analyzer-checker=apiModeling");
-
-    if (!Triple.isWindowsMSVCEnvironment()) {
-      CmdArgs.push_back("-analyzer-checker=unix");
-    } else {
-      // Enable "unix" checkers that also work on Windows.
-      CmdArgs.push_back("-analyzer-checker=unix.API");
-      CmdArgs.push_back("-analyzer-checker=unix.Malloc");
-      CmdArgs.push_back("-analyzer-checker=unix.MallocSizeof");
-      CmdArgs.push_back("-analyzer-checker=unix.MismatchedDeallocator");
-      CmdArgs.push_back("-analyzer-checker=unix.cstring.BadSizeArg");
-      CmdArgs.push_back("-analyzer-checker=unix.cstring.NullArg");
-    }
-
-    // Disable some unix checkers for PS4.
-    if (Triple.isPS4CPU()) {
-      CmdArgs.push_back("-analyzer-disable-checker=unix.API");
-      CmdArgs.push_back("-analyzer-disable-checker=unix.Vfork");
-    }
-
-    if (Triple.isOSDarwin())
-      CmdArgs.push_back("-analyzer-checker=osx");
-
-    CmdArgs.push_back("-analyzer-checker=deadcode");
-
-    if (types::isCXX(Input.getType()))
-      CmdArgs.push_back("-analyzer-checker=cplusplus");
-
-    if (!Triple.isPS4CPU()) {
-      CmdArgs.push_back("-analyzer-checker=security.insecureAPI.UncheckedReturn");
-      CmdArgs.push_back("-analyzer-checker=security.insecureAPI.getpw");
-      CmdArgs.push_back("-analyzer-checker=security.insecureAPI.gets");
-      CmdArgs.push_back("-analyzer-checker=security.insecureAPI.mktemp");
-      CmdArgs.push_back("-analyzer-checker=security.insecureAPI.mkstemp");
-      CmdArgs.push_back("-analyzer-checker=security.insecureAPI.vfork");
-    }
-
-    // Default nullability checks.
-    CmdArgs.push_back("-analyzer-checker=nullability.NullPassedToNonnull");
-    CmdArgs.push_back("-analyzer-checker=nullability.NullReturnedFromNonnull");
-  }
-
-  // Set the output format. The default is plist, for (lame) historical reasons.
-  CmdArgs.push_back("-analyzer-output");
-  if (Arg *A = Args.getLastArg(options::OPT__analyzer_output))
-    CmdArgs.push_back(A->getValue());
-  else
-    CmdArgs.push_back("plist");
-
-  // Disable the presentation of standard compiler warnings when using
-  // --analyze.  We only want to show static analyzer diagnostics or frontend
-  // errors.
-  CmdArgs.push_back("-w");
-
-  // Add -Xanalyzer arguments when running as analyzer.
-  Args.AddAllArgValues(CmdArgs, options::OPT_Xanalyzer);
-}
-
 static void RenderSSPOptions(const ToolChain &TC, const ArgList &Args,
                              ArgStringList &CmdArgs, bool KernelOrKext) {
   const llvm::Triple &EffectiveTriple = TC.getEffectiveTriple();
@@ -3510,10 +3440,7 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   // Select the appropriate action.
   RewriteKind rewriteKind = RK_None;
 
-  if (isa<AnalyzeJobAction>(JA)) {
-    assert(JA.getType() == types::TY_Plist && "Invalid output type.");
-    CmdArgs.push_back("-analyze");
-  } else if (isa<MigrateJobAction>(JA)) {
+  if (isa<MigrateJobAction>(JA)) {
     CmdArgs.push_back("-migrate");
   } else if (isa<PreprocessJobAction>(JA)) {
     if (Output.getType() == types::TY_Dependencies)
@@ -3749,27 +3676,6 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
 
   if (Args.hasArg(options::OPT_municode))
     CmdArgs.push_back("-DUNICODE");
-
-  if (isa<AnalyzeJobAction>(JA))
-    RenderAnalyzerOptions(Args, CmdArgs, Triple, Input);
-
-  // Enable compatilibily mode to avoid analyzer-config related errors.
-  // Since we can't access frontend flags through hasArg, let's manually iterate
-  // through them.
-  bool FoundAnalyzerConfig = false;
-  for (auto Arg : Args.filtered(options::OPT_Xclang))
-    if (StringRef(Arg->getValue()) == "-analyzer-config") {
-      FoundAnalyzerConfig = true;
-      break;
-    }
-  if (!FoundAnalyzerConfig)
-    for (auto Arg : Args.filtered(options::OPT_Xanalyzer))
-      if (StringRef(Arg->getValue()) == "-analyzer-config") {
-        FoundAnalyzerConfig = true;
-        break;
-      }
-  if (FoundAnalyzerConfig)
-    CmdArgs.push_back("-analyzer-config-compatibility-mode=true");
 
   CheckCodeGenerationOptions(D, Args);
 
