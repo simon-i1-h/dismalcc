@@ -41,8 +41,7 @@ CreateFrontendBaseAction(CompilerInstance &CI) {
   switch (CI.getFrontendOpts().ProgramAction) {
   case ASTDeclList:            return llvm::make_unique<ASTDeclListAction>();
   case ASTDump:                return llvm::make_unique<ASTDumpAction>();
-  // XXX WORKAROUND: for build
-  //case ASTPrint:               return llvm::make_unique<ASTPrintAction>();
+  case ASTPrint:               return llvm::make_unique<ASTPrintAction>();
   case ASTView:                return llvm::make_unique<ASTViewAction>();
   case DumpCompilerOptions:
     return llvm::make_unique<DumpCompilerOptionsAction>();
@@ -50,8 +49,6 @@ CreateFrontendBaseAction(CompilerInstance &CI) {
   case DumpTokens:             return llvm::make_unique<DumpTokensAction>();
   case EmitAssembly:           return llvm::make_unique<EmitAssemblyAction>();
   case EmitBC:                 return llvm::make_unique<EmitBCAction>();
-  // XXX WORKAROUND: for build
-  //case EmitHTML:               return llvm::make_unique<HTMLPrintAction>();
   case EmitLLVM:               return llvm::make_unique<EmitLLVMAction>();
   case EmitLLVMOnly:           return llvm::make_unique<EmitLLVMOnlyAction>();
   case EmitCodeGenOnly:        return llvm::make_unique<EmitCodeGenOnlyAction>();
@@ -92,9 +89,9 @@ CreateFrontendBaseAction(CompilerInstance &CI) {
   case PrintPreprocessedInput: {
     return llvm::make_unique<PrintPreprocessedAction>();
   }
-  // disable ARC migrate
+  // when ARC migrate is disabled
   case MigrateSource:          Action = "MigrateSource"; break;
-  // disable static analysis
+  // when static analysis is disabled
   case RunAnalysis:            Action = "RunAnalysis"; break;
   case RunPreprocessorOnly:    return llvm::make_unique<PreprocessOnlyAction>();
   }
