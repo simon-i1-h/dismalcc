@@ -1,5 +1,8 @@
 0.3 (xxxx/xx/xx):
 - trim clang.
+  - code formatter
+  - ARC migrator
+  - clang's static analyzer
 
 0.2 (2020/1/13):
 - remove clang bindings and clang tools.
