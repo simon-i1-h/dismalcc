@@ -8,7 +8,6 @@ set(link_libs
   clangCodeGen
   clangDriver
   clangFrontend
-  clangRewriteFrontend
   )
 
 if(CLANG_ENABLE_ARCMT)

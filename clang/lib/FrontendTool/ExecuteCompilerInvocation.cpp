@@ -23,7 +23,6 @@
 #include "clang/Frontend/FrontendPluginRegistry.h"
 #include "clang/Frontend/Utils.h"
 #include "clang/FrontendTool/Utils.h"
-#include "clang/Rewrite/Frontend/FrontendActions.h"
 #include "clang/StaticAnalyzer/Frontend/FrontendActions.h"
 #include "llvm/Option/OptTable.h"
 #include "llvm/Option/Option.h"
@@ -92,19 +91,9 @@ CreateFrontendBaseAction(CompilerInstance &CI) {
 
   case PrintPreamble:          return llvm::make_unique<PrintPreambleAction>();
   case PrintPreprocessedInput: {
-    if (CI.getPreprocessorOutputOpts().RewriteIncludes ||
-        CI.getPreprocessorOutputOpts().RewriteImports)
-      return llvm::make_unique<RewriteIncludesAction>();
     return llvm::make_unique<PrintPreprocessedAction>();
   }
 
-  case RewriteMacros:          return llvm::make_unique<RewriteMacrosAction>();
-  case RewriteTest:            return llvm::make_unique<RewriteTestAction>();
-#if CLANG_ENABLE_OBJC_REWRITER
-  case RewriteObjC:            return llvm::make_unique<RewriteObjCAction>();
-#else
-  case RewriteObjC:            Action = "RewriteObjC"; break;
-#endif
 #if CLANG_ENABLE_ARCMT
   case MigrateSource:
     return llvm::make_unique<arcmt::MigrateSourceAction>();
