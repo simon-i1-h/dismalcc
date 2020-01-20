@@ -174,11 +174,7 @@ Please install Python or specify the PYTHON_EXECUTABLE CMake variable.")
     if(LLVM_LIT)
       # Define the default arguments to use with 'lit', and an option for the user
       # to override.
-      set(LIT_ARGS_DEFAULT "-sv")
-      if (MSVC OR XCODE)
-        set(LIT_ARGS_DEFAULT "${LIT_ARGS_DEFAULT} --no-progress-bar")
-      endif()
-      set(LLVM_LIT_ARGS "${LIT_ARGS_DEFAULT}" CACHE STRING "Default options for lit")
+      set(LLVM_LIT_ARGS "-sv" CACHE STRING "Default options for lit")
 
       # On Win32 hosts, provide an option to specify the path to the GnuWin32 tools.
       if( WIN32 AND NOT CYGWIN )
