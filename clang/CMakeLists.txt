@@ -55,13 +55,10 @@ if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
     file(TO_CMAKE_PATH ${LLVM_CONFIG_CMAKE_PATH} LLVM_CMAKE_PATH)
   endif()
 
-
-  if(NOT MSVC_IDE)
-    set(LLVM_ENABLE_ASSERTIONS ${ENABLE_ASSERTIONS}
-      CACHE BOOL "Enable assertions")
-    # Assertions should follow llvm-config's.
-    mark_as_advanced(LLVM_ENABLE_ASSERTIONS)
-  endif()
+  set(LLVM_ENABLE_ASSERTIONS ${ENABLE_ASSERTIONS}
+    CACHE BOOL "Enable assertions")
+  # Assertions should follow llvm-config's.
+  mark_as_advanced(LLVM_ENABLE_ASSERTIONS)
 
   find_package(LLVM REQUIRED HINTS "${LLVM_CMAKE_PATH}")
   list(APPEND CMAKE_MODULE_PATH ${LLVM_DIR})
@@ -108,7 +105,6 @@ if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
   include(AddLLVM)
   include(TableGen)
   include(HandleLLVMOptions)
-  include(VersionFromVCS)
 
   set(PACKAGE_VERSION "${LLVM_PACKAGE_VERSION}")
 
