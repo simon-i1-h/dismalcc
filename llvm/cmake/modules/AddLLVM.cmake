@@ -276,78 +276,6 @@ function(set_output_directory target)
   endif()
 endfunction()
 
-# If on Windows and building with MSVC, add the resource script containing the
-# VERSIONINFO data to the project.  This embeds version resource information
-# into the output .exe or .dll.
-# TODO: Enable for MinGW Windows builds too.
-#
-function(add_windows_version_resource_file OUT_VAR)
-  set(sources ${ARGN})
-  if (MSVC AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-    set(resource_file ${LLVM_SOURCE_DIR}/resources/windows_version_resource.rc)
-    if(EXISTS ${resource_file})
-      set(sources ${sources} ${resource_file})
-      source_group("Resource Files" ${resource_file})
-      set(windows_resource_file ${resource_file} PARENT_SCOPE)
-    endif()
-  endif(MSVC AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-
-  set(${OUT_VAR} ${sources} PARENT_SCOPE)
-endfunction(add_windows_version_resource_file)
-
-# set_windows_version_resource_properties(name resource_file...
-#   VERSION_MAJOR int
-#     Optional major version number (defaults to LLVM_VERSION_MAJOR)
-#   VERSION_MINOR int
-#     Optional minor version number (defaults to LLVM_VERSION_MINOR)
-#   VERSION_PATCHLEVEL int
-#     Optional patchlevel version number (defaults to LLVM_VERSION_PATCH)
-#   VERSION_STRING
-#     Optional version string (defaults to PACKAGE_VERSION)
-#   PRODUCT_NAME
-#     Optional product name string (defaults to "LLVM")
-#   )
-function(set_windows_version_resource_properties name resource_file)
-  cmake_parse_arguments(ARG
-    ""
-    "VERSION_MAJOR;VERSION_MINOR;VERSION_PATCHLEVEL;VERSION_STRING;PRODUCT_NAME"
-    ""
-    ${ARGN})
-
-  if (NOT DEFINED ARG_VERSION_MAJOR)
-    set(ARG_VERSION_MAJOR ${LLVM_VERSION_MAJOR})
-  endif()
-
-  if (NOT DEFINED ARG_VERSION_MINOR)
-    set(ARG_VERSION_MINOR ${LLVM_VERSION_MINOR})
-  endif()
-
-  if (NOT DEFINED ARG_VERSION_PATCHLEVEL)
-    set(ARG_VERSION_PATCHLEVEL ${LLVM_VERSION_PATCH})
-  endif()
-
-  if (NOT DEFINED ARG_VERSION_STRING)
-    set(ARG_VERSION_STRING ${PACKAGE_VERSION})
-  endif()
-
-  if (NOT DEFINED ARG_PRODUCT_NAME)
-    set(ARG_PRODUCT_NAME "LLVM")
-  endif()
-
-  set_property(SOURCE ${resource_file}
-               PROPERTY COMPILE_FLAGS /nologo)
-  set_property(SOURCE ${resource_file}
-               PROPERTY COMPILE_DEFINITIONS
-               "RC_VERSION_FIELD_1=${ARG_VERSION_MAJOR}"
-               "RC_VERSION_FIELD_2=${ARG_VERSION_MINOR}"
-               "RC_VERSION_FIELD_3=${ARG_VERSION_PATCHLEVEL}"
-               "RC_VERSION_FIELD_4=0"
-               "RC_FILE_VERSION=\"${ARG_VERSION_STRING}\""
-               "RC_INTERNAL_NAME=\"${name}\""
-               "RC_PRODUCT_NAME=\"${ARG_PRODUCT_NAME}\""
-               "RC_PRODUCT_VERSION=\"${ARG_VERSION_STRING}\"")
-endfunction(set_windows_version_resource_properties)
-
 # llvm_add_library(name sources...
 #   SHARED;STATIC
 #     STATIC by default w/o BUILD_SHARED_LIBS.
@@ -451,7 +379,6 @@ function(llvm_add_library name)
   if(ARG_MODULE)
     add_library(${name} MODULE ${ALL_FILES})
   elseif(ARG_SHARED)
-    add_windows_version_resource_file(ALL_FILES ${ALL_FILES})
     add_library(${name} SHARED ${ALL_FILES})
   else()
     add_library(${name} STATIC ${ALL_FILES})
@@ -464,11 +391,6 @@ function(llvm_add_library name)
   endif()
 
   setup_dependency_debugging(${name} ${LLVM_COMMON_DEPENDS})
-
-  if(DEFINED windows_resource_file)
-    set_windows_version_resource_properties(${name} ${windows_resource_file})
-    set(windows_resource_file ${windows_resource_file} PARENT_SCOPE)
-  endif()
 
   set_output_directory(${name} BINARY_DIR ${LLVM_RUNTIME_OUTPUT_INTDIR} LIBRARY_DIR ${LLVM_LIBRARY_OUTPUT_INTDIR})
   # $<TARGET_OBJECTS> doesn't require compile flags.
@@ -709,8 +631,6 @@ macro(add_llvm_executable name)
     set_target_properties(${obj_name} PROPERTIES FOLDER "Object Libraries")
   endif()
 
-  add_windows_version_resource_file(ALL_FILES ${ALL_FILES})
-
   if(XCODE)
     # Note: the dummy.cpp source file provides no definitions. However,
     # it forces Xcode to properly link the static library.
@@ -727,10 +647,6 @@ macro(add_llvm_executable name)
 
   if(NOT ARG_NO_INSTALL_RPATH)
     llvm_setup_rpath(${name})
-  endif()
-
-  if(DEFINED windows_resource_file)
-    set_windows_version_resource_properties(${name} ${windows_resource_file})
   endif()
 
   # $<TARGET_OBJECTS> doesn't require compile flags.
