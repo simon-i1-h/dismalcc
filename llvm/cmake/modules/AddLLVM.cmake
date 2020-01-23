@@ -631,12 +631,6 @@ macro(add_llvm_executable name)
     set_target_properties(${obj_name} PROPERTIES FOLDER "Object Libraries")
   endif()
 
-  if(XCODE)
-    # Note: the dummy.cpp source file provides no definitions. However,
-    # it forces Xcode to properly link the static library.
-    list(APPEND ALL_FILES "${LLVM_MAIN_SRC_DIR}/cmake/dummy.cpp")
-  endif()
-
   if( EXCLUDE_FROM_ALL )
     add_executable(${name} EXCLUDE_FROM_ALL ${ALL_FILES})
   else()
