@@ -428,10 +428,6 @@ if (CLANG_ENABLE_BOOTSTRAP)
 
   set(C_COMPILER "clang")
   set(CXX_COMPILER "clang++")
-  if(WIN32)
-    set(C_COMPILER "clang-cl.exe")
-    set(CXX_COMPILER "clang-cl.exe")
-  endif()
 
   set(COMPILER_OPTIONS
     -DCMAKE_CXX_COMPILER=${LLVM_RUNTIME_OUTPUT_INTDIR}/${CXX_COMPILER}
