@@ -126,14 +126,6 @@ set(LTDL_SHLIB_EXT ${CMAKE_SHARED_LIBRARY_SUFFIX})
 # We use *.dylib rather than *.so on darwin.
 set(LLVM_PLUGIN_EXT ${CMAKE_SHARED_LIBRARY_SUFFIX})
 
-if(APPLE)
-  if(LLVM_ENABLE_LLD AND LLVM_ENABLE_LTO)
-    message(FATAL_ERROR "lld does not support LTO on Darwin")
-  endif()
-  # Darwin-specific linker flags for loadable modules.
-  set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-flat_namespace -Wl,-undefined -Wl,suppress")
-endif()
-
 # Pass -Wl,-z,defs. This makes sure all symbols are defined. Otherwise a DSO
 # build might work on ELF but fail on MachO/COFF.
 if(NOT (${CMAKE_SYSTEM_NAME} MATCHES "Darwin" OR WIN32 OR CYGWIN OR
