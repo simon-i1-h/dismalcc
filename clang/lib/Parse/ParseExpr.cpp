@@ -1183,6 +1183,7 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
   case tok::kw_sizeof:     // unary-expression: 'sizeof' unary-expression
                            // unary-expression: 'sizeof' '(' type-name ')'
   case tok::kw_vec_step:   // unary-expression: OpenCL 'vec_step' expression
+    return ParseUnaryExprOrTypeTraitExpression();
   case tok::ampamp: {      // unary-expression: '&&' identifier
     SourceLocation AmpAmpLoc = ConsumeToken();
     if (Tok.isNot(tok::identifier))
