@@ -273,78 +273,6 @@ instantiateDependentModeAttr(Sema &S,
                 Attr.getSpellingListIndex(), /*InInstantiation=*/true);
 }
 
-/// Instantiation of 'declare simd' attribute and its arguments.
-static void instantiateOMPDeclareSimdDeclAttr(
-    Sema &S, const MultiLevelTemplateArgumentList &TemplateArgs,
-    const OMPDeclareSimdDeclAttr &Attr, Decl *New) {
-  // Allow 'this' in clauses with varlists.
-  if (auto *FTD = dyn_cast<FunctionTemplateDecl>(New))
-    New = FTD->getTemplatedDecl();
-  auto *FD = cast<FunctionDecl>(New);
-  auto *ThisContext = dyn_cast_or_null<CXXRecordDecl>(FD->getDeclContext());
-  SmallVector<Expr *, 4> Uniforms, Aligneds, Alignments, Linears, Steps;
-  SmallVector<unsigned, 4> LinModifiers;
-
-  auto &&Subst = [&](Expr *E) -> ExprResult {
-    if (auto *DRE = dyn_cast<DeclRefExpr>(E->IgnoreParenImpCasts()))
-      if (auto *PVD = dyn_cast<ParmVarDecl>(DRE->getDecl())) {
-        Sema::ContextRAII SavedContext(S, FD);
-        LocalInstantiationScope Local(S);
-        if (FD->getNumParams() > PVD->getFunctionScopeIndex())
-          Local.InstantiatedLocal(
-              PVD, FD->getParamDecl(PVD->getFunctionScopeIndex()));
-        return S.SubstExpr(E, TemplateArgs);
-      }
-    Sema::CXXThisScopeRAII ThisScope(S, ThisContext, Qualifiers(),
-                                     FD->isCXXInstanceMember());
-    return S.SubstExpr(E, TemplateArgs);
-  };
-
-  ExprResult Simdlen;
-  if (auto *E = Attr.getSimdlen())
-    Simdlen = Subst(E);
-
-  if (Attr.uniforms_size() > 0) {
-    for(auto *E : Attr.uniforms()) {
-      ExprResult Inst = Subst(E);
-      if (Inst.isInvalid())
-        continue;
-      Uniforms.push_back(Inst.get());
-    }
-  }
-
-  auto AI = Attr.alignments_begin();
-  for (auto *E : Attr.aligneds()) {
-    ExprResult Inst = Subst(E);
-    if (Inst.isInvalid())
-      continue;
-    Aligneds.push_back(Inst.get());
-    Inst = ExprEmpty();
-    if (*AI)
-      Inst = S.SubstExpr(*AI, TemplateArgs);
-    Alignments.push_back(Inst.get());
-    ++AI;
-  }
-
-  auto SI = Attr.steps_begin();
-  for (auto *E : Attr.linears()) {
-    ExprResult Inst = Subst(E);
-    if (Inst.isInvalid())
-      continue;
-    Linears.push_back(Inst.get());
-    Inst = ExprEmpty();
-    if (*SI)
-      Inst = S.SubstExpr(*SI, TemplateArgs);
-    Steps.push_back(Inst.get());
-    ++SI;
-  }
-  LinModifiers.append(Attr.modifiers_begin(), Attr.modifiers_end());
-  (void)S.ActOnOpenMPDeclareSimdDirective(
-      S.ConvertDeclToDeclGroup(New), Attr.getBranchState(), Simdlen.get(),
-      Uniforms, Aligneds, Alignments, Linears, LinModifiers, Steps,
-      Attr.getRange());
-}
-
 void Sema::InstantiateAttrsForDecl(
     const MultiLevelTemplateArgumentList &TemplateArgs, const Decl *Tmpl,
     Decl *New, LateInstantiatedAttrVec *LateAttrs,
@@ -430,11 +358,6 @@ void Sema::InstantiateAttrs(const MultiLevelTemplateArgumentList &TemplateArgs,
 
     if (const ModeAttr *Mode = dyn_cast<ModeAttr>(TmplAttr)) {
       instantiateDependentModeAttr(*this, TemplateArgs, *Mode, New);
-      continue;
-    }
-
-    if (const auto *OMPAttr = dyn_cast<OMPDeclareSimdDeclAttr>(TmplAttr)) {
-      instantiateOMPDeclareSimdDeclAttr(*this, TemplateArgs, *OMPAttr, New);
       continue;
     }
 
@@ -2802,134 +2725,6 @@ Decl *TemplateDeclInstantiator::VisitClassScopeFunctionSpecializationDecl(
   return NewFD;
 }
 
-Decl *TemplateDeclInstantiator::VisitOMPThreadPrivateDecl(
-                                     OMPThreadPrivateDecl *D) {
-  SmallVector<Expr *, 5> Vars;
-  for (auto *I : D->varlists()) {
-    Expr *Var = SemaRef.SubstExpr(I, TemplateArgs).get();
-    assert(isa<DeclRefExpr>(Var) && "threadprivate arg is not a DeclRefExpr");
-    Vars.push_back(Var);
-  }
-
-  OMPThreadPrivateDecl *TD =
-    SemaRef.CheckOMPThreadPrivateDecl(D->getLocation(), Vars);
-
-  TD->setAccess(AS_public);
-  Owner->addDecl(TD);
-
-  return TD;
-}
-
-Decl *TemplateDeclInstantiator::VisitOMPRequiresDecl(OMPRequiresDecl *D) {
-  llvm_unreachable(
-      "Requires directive cannot be instantiated within a dependent context");
-}
-
-Decl *TemplateDeclInstantiator::VisitOMPDeclareReductionDecl(
-    OMPDeclareReductionDecl *D) {
-  // Instantiate type and check if it is allowed.
-  const bool RequiresInstantiation =
-      D->getType()->isDependentType() ||
-      D->getType()->isInstantiationDependentType() ||
-      D->getType()->containsUnexpandedParameterPack();
-  QualType SubstReductionType;
-  if (RequiresInstantiation) {
-    SubstReductionType = SemaRef.ActOnOpenMPDeclareReductionType(
-        D->getLocation(),
-        ParsedType::make(SemaRef.SubstType(
-            D->getType(), TemplateArgs, D->getLocation(), DeclarationName())));
-  } else {
-    SubstReductionType = D->getType();
-  }
-  if (SubstReductionType.isNull())
-    return nullptr;
-  bool IsCorrect = !SubstReductionType.isNull();
-  // Create instantiated copy.
-  std::pair<QualType, SourceLocation> ReductionTypes[] = {
-      std::make_pair(SubstReductionType, D->getLocation())};
-  auto *PrevDeclInScope = D->getPrevDeclInScope();
-  if (PrevDeclInScope && !PrevDeclInScope->isInvalidDecl()) {
-    PrevDeclInScope = cast<OMPDeclareReductionDecl>(
-        SemaRef.CurrentInstantiationScope->findInstantiationOf(PrevDeclInScope)
-            ->get<Decl *>());
-  }
-  auto DRD = SemaRef.ActOnOpenMPDeclareReductionDirectiveStart(
-      /*S=*/nullptr, Owner, D->getDeclName(), ReductionTypes, D->getAccess(),
-      PrevDeclInScope);
-  auto *NewDRD = cast<OMPDeclareReductionDecl>(DRD.get().getSingleDecl());
-  SemaRef.CurrentInstantiationScope->InstantiatedLocal(D, NewDRD);
-  if (!RequiresInstantiation) {
-    if (Expr *Combiner = D->getCombiner()) {
-      NewDRD->setCombinerData(D->getCombinerIn(), D->getCombinerOut());
-      NewDRD->setCombiner(Combiner);
-      if (Expr *Init = D->getInitializer()) {
-        NewDRD->setInitializerData(D->getInitOrig(), D->getInitPriv());
-        NewDRD->setInitializer(Init, D->getInitializerKind());
-      }
-    }
-    (void)SemaRef.ActOnOpenMPDeclareReductionDirectiveEnd(
-        /*S=*/nullptr, DRD, IsCorrect && !D->isInvalidDecl());
-    return NewDRD;
-  }
-  Expr *SubstCombiner = nullptr;
-  Expr *SubstInitializer = nullptr;
-  // Combiners instantiation sequence.
-  if (D->getCombiner()) {
-    SemaRef.ActOnOpenMPDeclareReductionCombinerStart(
-        /*S=*/nullptr, NewDRD);
-    SemaRef.CurrentInstantiationScope->InstantiatedLocal(
-        cast<DeclRefExpr>(D->getCombinerIn())->getDecl(),
-        cast<DeclRefExpr>(NewDRD->getCombinerIn())->getDecl());
-    SemaRef.CurrentInstantiationScope->InstantiatedLocal(
-        cast<DeclRefExpr>(D->getCombinerOut())->getDecl(),
-        cast<DeclRefExpr>(NewDRD->getCombinerOut())->getDecl());
-    auto *ThisContext = dyn_cast_or_null<CXXRecordDecl>(Owner);
-    Sema::CXXThisScopeRAII ThisScope(SemaRef, ThisContext, Qualifiers(),
-                                     ThisContext);
-    SubstCombiner = SemaRef.SubstExpr(D->getCombiner(), TemplateArgs).get();
-    SemaRef.ActOnOpenMPDeclareReductionCombinerEnd(NewDRD, SubstCombiner);
-    // Initializers instantiation sequence.
-    if (D->getInitializer()) {
-      VarDecl *OmpPrivParm =
-          SemaRef.ActOnOpenMPDeclareReductionInitializerStart(
-              /*S=*/nullptr, NewDRD);
-      SemaRef.CurrentInstantiationScope->InstantiatedLocal(
-          cast<DeclRefExpr>(D->getInitOrig())->getDecl(),
-          cast<DeclRefExpr>(NewDRD->getInitOrig())->getDecl());
-      SemaRef.CurrentInstantiationScope->InstantiatedLocal(
-          cast<DeclRefExpr>(D->getInitPriv())->getDecl(),
-          cast<DeclRefExpr>(NewDRD->getInitPriv())->getDecl());
-      if (D->getInitializerKind() == OMPDeclareReductionDecl::CallInit) {
-        SubstInitializer =
-            SemaRef.SubstExpr(D->getInitializer(), TemplateArgs).get();
-      } else {
-        IsCorrect = IsCorrect && OmpPrivParm->hasInit();
-      }
-      SemaRef.ActOnOpenMPDeclareReductionInitializerEnd(
-          NewDRD, SubstInitializer, OmpPrivParm);
-    }
-    IsCorrect =
-        IsCorrect && SubstCombiner &&
-        (!D->getInitializer() ||
-         (D->getInitializerKind() == OMPDeclareReductionDecl::CallInit &&
-          SubstInitializer) ||
-         (D->getInitializerKind() != OMPDeclareReductionDecl::CallInit &&
-          !SubstInitializer && !SubstInitializer));
-  } else {
-    IsCorrect = false;
-  }
-
-  (void)SemaRef.ActOnOpenMPDeclareReductionDirectiveEnd(/*S=*/nullptr, DRD,
-                                                        IsCorrect);
-
-  return NewDRD;
-}
-
-Decl *TemplateDeclInstantiator::VisitOMPCapturedExprDecl(
-    OMPCapturedExprDecl * /*D*/) {
-  llvm_unreachable("Should not be met in templates");
-}
-
 Decl *TemplateDeclInstantiator::VisitFunctionDecl(FunctionDecl *D) {
   return VisitFunctionDecl(D, nullptr);
 }
@@ -5005,9 +4800,7 @@ NamedDecl *Sema::FindInstantiatedDecl(SourceLocation Loc, NamedDecl *D,
     return D;
   if (isa<ParmVarDecl>(D) || isa<NonTypeTemplateParmDecl>(D) ||
       isa<TemplateTypeParmDecl>(D) || isa<TemplateTemplateParmDecl>(D) ||
-      ((ParentDC->isFunctionOrMethod() ||
-        isa<OMPDeclareReductionDecl>(ParentDC)) &&
-       ParentDC->isDependentContext()) ||
+      (ParentDC->isFunctionOrMethod() && ParentDC->isDependentContext()) ||
       (isa<CXXRecordDecl>(D) && cast<CXXRecordDecl>(D)->isLambda())) {
     // D is a local of some kind. Look into the map of local
     // declarations to their instantiations.

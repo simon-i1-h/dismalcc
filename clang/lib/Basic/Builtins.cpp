@@ -75,10 +75,9 @@ bool Builtin::Context::builtinIsSupported(const Builtin::Info &BuiltinInfo,
                           (BuiltinInfo.Langs & ALL_OCLC_LANGUAGES) == OCLC20_LANG;
   bool OclCUnsupported = !LangOpts.OpenCL &&
                          (BuiltinInfo.Langs & ALL_OCLC_LANGUAGES);
-  bool OpenMPUnsupported = !LangOpts.OpenMP && BuiltinInfo.Langs == OMP_LANG;
   return !BuiltinsUnsupported && !MathBuiltinsUnsupported && !OclCUnsupported &&
-         !OclC1Unsupported && !OclC2Unsupported && !OpenMPUnsupported &&
-         !GnuModeUnsupported && !MSModeUnsupported && !ObjCUnsupported;
+         !OclC1Unsupported && !OclC2Unsupported && !GnuModeUnsupported &&
+         !MSModeUnsupported && !ObjCUnsupported;
 }
 
 /// initializeBuiltins - Mark the identifiers for all the builtins with their

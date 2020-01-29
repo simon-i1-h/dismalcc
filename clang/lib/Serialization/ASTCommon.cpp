@@ -236,9 +236,6 @@ serialization::TypeIdxFromBuiltin(const BuiltinType *BT) {
   case BuiltinType::BuiltinFn:
     ID = PREDEF_TYPE_BUILTIN_FN;
     break;
-  case BuiltinType::OMPArraySection:
-    ID = PREDEF_TYPE_OMP_ARRAY_SECTION;
-    break;
   }
 
   return TypeIdx(ID);
@@ -387,10 +384,6 @@ bool serialization::isRedeclarableDeclKind(unsigned Kind) {
   case Decl::Captured:
   case Decl::ClassScopeFunctionSpecialization:
   case Decl::Import:
-  case Decl::OMPThreadPrivate:
-  case Decl::OMPRequires:
-  case Decl::OMPCapturedExpr:
-  case Decl::OMPDeclareReduction:
   case Decl::BuiltinTemplate:
   case Decl::Decomposition:
   case Decl::Binding:

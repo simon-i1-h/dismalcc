@@ -720,17 +720,7 @@ def fcuda_allow_variadic_functions : Flag<["-"], "fcuda-allow-variadic-functions
 def fno_cuda_host_device_constexpr : Flag<["-"], "fno-cuda-host-device-constexpr">,
   HelpText<"Don't treat unattributed constexpr functions as __host__ __device__.">;
 
-//===----------------------------------------------------------------------===//
-// OpenMP Options
-//===----------------------------------------------------------------------===//
-
-def fopenmp_is_device : Flag<["-"], "fopenmp-is-device">,
-  HelpText<"Generate code only for an OpenMP target device.">;
-def fopenmp_host_ir_file_path : Separate<["-"], "fopenmp-host-ir-file-path">,
-  HelpText<"Path to the IR file produced by the frontend for the host.">;
-
 } // let Flags = [CC1Option]
-
 
 //===----------------------------------------------------------------------===//
 // cc1as-only Options

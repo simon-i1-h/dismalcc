@@ -21,7 +21,6 @@
 #include "clang/AST/Attr.h"
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclObjC.h"
-#include "clang/AST/DeclOpenMP.h"
 #include "clang/AST/GlobalDecl.h"
 #include "clang/AST/Mangle.h"
 #include "clang/Basic/ABI.h"
@@ -88,7 +87,6 @@ class CGCXXABI;
 class CGDebugInfo;
 class CGObjCRuntime;
 class CGOpenCLRuntime;
-class CGOpenMPRuntime;
 class CGCUDARuntime;
 class BlockFieldFlags;
 class FunctionArgList;
@@ -315,7 +313,6 @@ private:
 
   std::unique_ptr<CGObjCRuntime> ObjCRuntime;
   std::unique_ptr<CGOpenCLRuntime> OpenCLRuntime;
-  std::unique_ptr<CGOpenMPRuntime> OpenMPRuntime;
   std::unique_ptr<CGCUDARuntime> CUDARuntime;
   std::unique_ptr<CGDebugInfo> DebugInfo;
   std::unique_ptr<ObjCEntrypoints> ObjCData;
@@ -481,7 +478,6 @@ private:
   void createObjCRuntime();
 
   void createOpenCLRuntime();
-  void createOpenMPRuntime();
   void createCUDARuntime();
 
   bool isTriviallyRecursive(const FunctionDecl *F);
@@ -565,12 +561,6 @@ public:
   CGOpenCLRuntime &getOpenCLRuntime() {
     assert(OpenCLRuntime != nullptr);
     return *OpenCLRuntime;
-  }
-
-  /// Return a reference to the configured OpenMP runtime.
-  CGOpenMPRuntime &getOpenMPRuntime() {
-    assert(OpenMPRuntime != nullptr);
-    return *OpenMPRuntime;
   }
 
   /// Return a reference to the configured CUDA runtime.
@@ -1235,18 +1225,6 @@ public:
   void addReplacement(StringRef Name, llvm::Constant *C);
 
   void addGlobalValReplacement(llvm::GlobalValue *GV, llvm::Constant *C);
-
-  /// Emit a code for threadprivate directive.
-  /// \param D Threadprivate declaration.
-  void EmitOMPThreadPrivateDecl(const OMPThreadPrivateDecl *D);
-
-  /// Emit a code for declare reduction construct.
-  void EmitOMPDeclareReduction(const OMPDeclareReductionDecl *D,
-                               CodeGenFunction *CGF = nullptr);
-
-  /// Emit a code for requires directive.
-  /// \param D Requires declaration
-  void EmitOMPRequiresDecl(const OMPRequiresDecl *D);
 
   /// Returns whether the given record has hidden LTO visibility and therefore
   /// may participate in (single-module) CFI and whole-program vtable

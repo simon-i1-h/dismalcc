@@ -30,7 +30,6 @@ add_clang_library(clangAST
   DeclFriend.cpp
   DeclGroup.cpp
   DeclObjC.cpp
-  DeclOpenMP.cpp
   DeclPrinter.cpp
   DeclTemplate.cpp
   Expr.cpp
@@ -51,7 +50,6 @@ add_clang_library(clangAST
   NSAPI.cpp
   ODRHash.cpp
   OSLog.cpp
-  OpenMPClause.cpp
   ParentMap.cpp
   PrintfFormatString.cpp
   QualTypeNames.cpp
@@ -64,7 +62,6 @@ add_clang_library(clangAST
   StmtCXX.cpp
   StmtIterator.cpp
   StmtObjC.cpp
-  StmtOpenMP.cpp
   StmtPrinter.cpp
   StmtProfile.cpp
   StmtViz.cpp

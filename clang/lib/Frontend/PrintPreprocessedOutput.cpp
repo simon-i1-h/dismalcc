@@ -863,16 +863,6 @@ void clang::DoPrintPreprocessedInput(Preprocessor &PP, raw_ostream *OS,
   PP.AddPragmaHandler("GCC", GCCHandler.get());
   PP.AddPragmaHandler("clang", ClangHandler.get());
 
-  // The tokens after pragma omp need to be expanded.
-  //
-  //  OpenMP [2.1, Directive format]
-  //  Preprocessing tokens following the #pragma omp are subject to macro
-  //  replacement.
-  std::unique_ptr<UnknownPragmaHandler> OpenMPHandler(
-      new UnknownPragmaHandler("#pragma omp", Callbacks,
-                               /*RequireTokenExpansion=*/true));
-  PP.AddPragmaHandler("omp", OpenMPHandler.get());
-
   PP.addPPCallbacks(std::unique_ptr<PPCallbacks>(Callbacks));
 
   // After we have configured the preprocessor, enter the main file.
@@ -905,5 +895,4 @@ void clang::DoPrintPreprocessedInput(Preprocessor &PP, raw_ostream *OS,
   PP.RemovePragmaHandler(MicrosoftExtHandler.get());
   PP.RemovePragmaHandler("GCC", GCCHandler.get());
   PP.RemovePragmaHandler("clang", ClangHandler.get());
-  PP.RemovePragmaHandler("omp", OpenMPHandler.get());
 }

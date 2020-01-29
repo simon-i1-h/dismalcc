@@ -19,7 +19,6 @@
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclarationName.h"
 #include "clang/AST/NestedNameSpecifier.h"
-#include "clang/AST/OpenMPClause.h"
 #include "clang/AST/TemplateBase.h"
 #include "clang/AST/TemplateName.h"
 #include "clang/AST/Type.h"
@@ -735,9 +734,6 @@ private:
   void AddedObjCCategoryToInterface(const ObjCCategoryDecl *CatD,
                                     const ObjCInterfaceDecl *IFD) override;
   void DeclarationMarkedUsed(const Decl *D) override;
-  void DeclarationMarkedOpenMPThreadPrivate(const Decl *D) override;
-  void DeclarationMarkedOpenMPDeclareTarget(const Decl *D,
-                                            const Attr *Attr) override;
   void RedefinedHiddenDefinition(const NamedDecl *D, Module *M) override;
   void AddedAttributeToRecord(const Attr *Attr,
                               const RecordDecl *Record) override;
@@ -992,18 +988,6 @@ public:
   ASTMutationListener *GetASTMutationListener() override;
   ASTDeserializationListener *GetASTDeserializationListener() override;
   bool hasEmittedPCH() const { return Buffer->IsComplete; }
-};
-
-class OMPClauseWriter : public OMPClauseVisitor<OMPClauseWriter> {
-  ASTRecordWriter &Record;
-
-public:
-  OMPClauseWriter(ASTRecordWriter &Record) : Record(Record) {}
-#define OPENMP_CLAUSE(Name, Class) void Visit##Class(Class *S);
-#include "clang/Basic/OpenMPKinds.def"
-  void writeClause(OMPClause *C);
-  void VisitOMPClauseWithPreInit(OMPClauseWithPreInit *C);
-  void VisitOMPClauseWithPostUpdate(OMPClauseWithPostUpdate *C);
 };
 
 } // namespace clang

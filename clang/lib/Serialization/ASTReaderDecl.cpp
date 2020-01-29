@@ -22,7 +22,6 @@
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclFriend.h"
 #include "clang/AST/DeclObjC.h"
-#include "clang/AST/DeclOpenMP.h"
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/DeclVisitor.h"
 #include "clang/AST/DeclarationName.h"
@@ -30,7 +29,6 @@
 #include "clang/AST/ExternalASTSource.h"
 #include "clang/AST/LambdaCapture.h"
 #include "clang/AST/NestedNameSpecifier.h"
-#include "clang/AST/OpenMPClause.h"
 #include "clang/AST/Redeclarable.h"
 #include "clang/AST/Stmt.h"
 #include "clang/AST/TemplateBase.h"
@@ -444,10 +442,6 @@ namespace clang {
     void VisitObjCCompatibleAliasDecl(ObjCCompatibleAliasDecl *D);
     void VisitObjCPropertyDecl(ObjCPropertyDecl *D);
     void VisitObjCPropertyImplDecl(ObjCPropertyImplDecl *D);
-    void VisitOMPThreadPrivateDecl(OMPThreadPrivateDecl *D);
-    void VisitOMPDeclareReductionDecl(OMPDeclareReductionDecl *D);
-    void VisitOMPRequiresDecl(OMPRequiresDecl *D);
-    void VisitOMPCapturedExprDecl(OMPCapturedExprDecl *D);
   };
 
 } // namespace clang
@@ -2621,49 +2615,6 @@ void ASTDeclReader::mergeMergeable(Mergeable<T> *D) {
                                                Existing->getCanonicalDecl());
 }
 
-void ASTDeclReader::VisitOMPThreadPrivateDecl(OMPThreadPrivateDecl *D) {
-  VisitDecl(D);
-  unsigned NumVars = D->varlist_size();
-  SmallVector<Expr *, 16> Vars;
-  Vars.reserve(NumVars);
-  for (unsigned i = 0; i != NumVars; ++i) {
-    Vars.push_back(Record.readExpr());
-  }
-  D->setVars(Vars);
-}
-
-void ASTDeclReader::VisitOMPRequiresDecl(OMPRequiresDecl * D) {
-  VisitDecl(D);
-  unsigned NumClauses = D->clauselist_size();
-  SmallVector<OMPClause *, 8> Clauses;
-  Clauses.reserve(NumClauses);
-  OMPClauseReader ClauseReader(Record);
-  for (unsigned I = 0; I != NumClauses; ++I)
-    Clauses.push_back(ClauseReader.readClause());
-  D->setClauses(Clauses);
-}
-
-void ASTDeclReader::VisitOMPDeclareReductionDecl(OMPDeclareReductionDecl *D) {
-  VisitValueDecl(D);
-  D->setLocation(ReadSourceLocation());
-  Expr *In = Record.readExpr();
-  Expr *Out = Record.readExpr();
-  D->setCombinerData(In, Out);
-  Expr *Combiner = Record.readExpr();
-  D->setCombiner(Combiner);
-  Expr *Orig = Record.readExpr();
-  Expr *Priv = Record.readExpr();
-  D->setInitializerData(Orig, Priv);
-  Expr *Init = Record.readExpr();
-  auto IK = static_cast<OMPDeclareReductionDecl::InitKind>(Record.readInt());
-  D->setInitializer(Init, IK);
-  D->PrevDeclInScope = ReadDeclID();
-}
-
-void ASTDeclReader::VisitOMPCapturedExprDecl(OMPCapturedExprDecl *D) {
-  VisitVarDecl(D);
-}
-
 //===----------------------------------------------------------------------===//
 // Attribute Reading
 //===----------------------------------------------------------------------===//
@@ -2777,12 +2728,9 @@ static bool isConsumerInterestedIn(ASTContext &Ctx, Decl *D, bool HasBody) {
       isa<PragmaCommentDecl>(D) ||
       isa<PragmaDetectMismatchDecl>(D))
     return true;
-  if (isa<OMPThreadPrivateDecl>(D) || isa<OMPDeclareReductionDecl>(D))
-    return !D->getDeclContext()->isFunctionOrMethod();
   if (const auto *Var = dyn_cast<VarDecl>(D))
     return Var->isFileVarDecl() &&
-           (Var->isThisDeclarationADefinition() == VarDecl::Definition ||
-            OMPDeclareTargetDeclAttr::isDeclareTargetDeclaration(Var));
+           Var->isThisDeclarationADefinition() == VarDecl::Definition;
   if (const auto *Func = dyn_cast<FunctionDecl>(D))
     return Func->doesThisDeclarationHaveABody() || HasBody;
 
@@ -3845,18 +3793,6 @@ Decl *ASTReader::ReadDeclRecord(DeclID ID) {
     // locations.
     D = ImportDecl::CreateDeserialized(Context, ID, Record.back());
     break;
-  case DECL_OMP_THREADPRIVATE:
-    D = OMPThreadPrivateDecl::CreateDeserialized(Context, ID, Record.readInt());
-    break;
-  case DECL_OMP_REQUIRES:
-    D = OMPRequiresDecl::CreateDeserialized(Context, ID, Record.readInt());
-    break;
-  case DECL_OMP_DECLARE_REDUCTION:
-    D = OMPDeclareReductionDecl::CreateDeserialized(Context, ID);
-    break;
-  case DECL_OMP_CAPTUREDEXPR:
-    D = OMPCapturedExprDecl::CreateDeserialized(Context, ID);
-    break;
   case DECL_PRAGMA_COMMENT:
     D = PragmaCommentDecl::CreateDeserialized(Context, ID, Record.readInt());
     break;
@@ -4439,11 +4375,6 @@ void ASTDeclReader::UpdateDecl(Decl *D,
                                                Record.readInt());
       break;
 
-    case UPD_DECL_MARKED_OPENMP_THREADPRIVATE:
-      D->addAttr(OMPThreadPrivateDeclAttr::CreateImplicit(Reader.getContext(),
-                                                          ReadSourceRange()));
-      break;
-
     case UPD_DECL_EXPORTED: {
       unsigned SubmoduleID = readSubmoduleID();
       auto *Exported = cast<NamedDecl>(D);
@@ -4452,13 +4383,6 @@ void ASTDeclReader::UpdateDecl(Decl *D,
       Reader.PendingMergedDefinitionsToDeduplicate.insert(Exported);
       break;
     }
-
-    case UPD_DECL_MARKED_OPENMP_DECLARETARGET:
-      D->addAttr(OMPDeclareTargetDeclAttr::CreateImplicit(
-          Reader.getContext(),
-          static_cast<OMPDeclareTargetDeclAttr::MapTypeTy>(Record.readInt()),
-          ReadSourceRange()));
-      break;
 
     case UPD_ADDED_ATTR_TO_RECORD:
       AttrVec Attrs;

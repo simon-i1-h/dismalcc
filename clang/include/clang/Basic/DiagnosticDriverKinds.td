@@ -77,10 +77,6 @@ def err_drv_invalid_Xarch_argument_with_args : Error<
   "invalid Xarch argument: '%0', options requiring arguments are unsupported">;
 def err_drv_invalid_Xarch_argument_isdriver : Error<
   "invalid Xarch argument: '%0', cannot change driver behavior inside Xarch argument">;
-def err_drv_Xopenmp_target_missing_triple : Error<
-  "cannot deduce implicit triple value for -Xopenmp-target, specify triple using -Xopenmp-target=<triple>">;
-def err_drv_invalid_Xopenmp_target_with_args : Error<
-  "invalid -Xopenmp-target argument: '%0', options requiring arguments are unsupported">;
 def err_drv_argument_only_allowed_with : Error<
   "invalid argument '%0' only allowed with '%1'">;
 def err_drv_argument_not_allowed_with : Error<
@@ -203,19 +199,6 @@ def err_drv_emit_llvm_link : Error<
 def err_drv_optimization_remark_pattern : Error<
   "%0 in '%1'">;
 def err_drv_no_neon_modifier : Error<"[no]neon is not accepted as modifier, please use [no]simd instead">;
-def err_drv_invalid_omp_target : Error<"OpenMP target is invalid: '%0'">;
-def err_drv_omp_host_ir_file_not_found : Error<
-  "The provided host compiler IR file '%0' is required to generate code for OpenMP target regions but cannot be found.">;
-def err_drv_omp_host_target_not_supported : Error<
-  "The target '%0' is not a supported OpenMP host target.">;
-def err_drv_expecting_fopenmp_with_fopenmp_targets : Error<
-  "The option -fopenmp-targets must be used in conjunction with a -fopenmp option compatible with offloading, please use -fopenmp=libomp or -fopenmp=libiomp5.">;
-def warn_drv_omp_offload_target_duplicate : Warning<
-  "The OpenMP offloading target '%0' is similar to target '%1' already specified - will be ignored.">,
-  InGroup<OpenMPTarget>;
-def warn_drv_omp_offload_target_missingbcruntime : Warning<
-  "No library '%0' found in the default clang lib directory or in LIBRARY_PATH. Expect degraded performance due to no inlining of runtime functions on target devices.">,
-  InGroup<OpenMPTarget>;
 def err_drv_unsupported_embed_bitcode
     : Error<"%0 is not supported with -fembed-bitcode">;
 def err_drv_bitcode_unsupported_on_toolchain : Error<

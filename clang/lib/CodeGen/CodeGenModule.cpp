@@ -19,8 +19,6 @@
 #include "CGDebugInfo.h"
 #include "CGObjCRuntime.h"
 #include "CGOpenCLRuntime.h"
-#include "CGOpenMPRuntime.h"
-#include "CGOpenMPRuntimeNVPTX.h"
 #include "CodeGenFunction.h"
 #include "CodeGenPGO.h"
 #include "ConstantEmitter.h"
@@ -130,8 +128,6 @@ CodeGenModule::CodeGenModule(ASTContext &C, const HeaderSearchOptions &HSO,
     createObjCRuntime();
   if (LangOpts.OpenCL)
     createOpenCLRuntime();
-  if (LangOpts.OpenMP)
-    createOpenMPRuntime();
   if (LangOpts.CUDA)
     createCUDARuntime();
 
@@ -196,25 +192,6 @@ void CodeGenModule::createObjCRuntime() {
 
 void CodeGenModule::createOpenCLRuntime() {
   OpenCLRuntime.reset(new CGOpenCLRuntime(*this));
-}
-
-void CodeGenModule::createOpenMPRuntime() {
-  // Select a specialized code generation class based on the target, if any.
-  // If it does not exist use the default implementation.
-  switch (getTriple().getArch()) {
-  case llvm::Triple::nvptx:
-  case llvm::Triple::nvptx64:
-    assert(getLangOpts().OpenMPIsDevice &&
-           "OpenMP NVPTX is only prepared to deal with device code.");
-    OpenMPRuntime.reset(new CGOpenMPRuntimeNVPTX(*this));
-    break;
-  default:
-    if (LangOpts.OpenMPSimd)
-      OpenMPRuntime.reset(new CGOpenMPSIMDRuntime(*this));
-    else
-      OpenMPRuntime.reset(new CGOpenMPRuntime(*this));
-    break;
-  }
 }
 
 void CodeGenModule::createCUDARuntime() {
@@ -367,8 +344,6 @@ void CodeGenModule::checkAliases() {
 
 void CodeGenModule::clear() {
   DeferredDeclsToEmit.clear();
-  if (OpenMPRuntime)
-    OpenMPRuntime->clear();
 }
 
 void InstrProfStats::reportDiagnostics(DiagnosticsEngine &Diags,
@@ -407,15 +382,6 @@ void CodeGenModule::Release() {
     if (llvm::Function *CudaCtorFunction =
             CUDARuntime->makeModuleCtorFunction())
       AddGlobalCtor(CudaCtorFunction);
-  }
-  if (OpenMPRuntime) {
-    if (llvm::Function *OpenMPRegistrationFunction =
-            OpenMPRuntime->emitRegistrationFunction()) {
-      auto ComdatKey = OpenMPRegistrationFunction->hasComdat() ?
-        OpenMPRegistrationFunction : nullptr;
-      AddGlobalCtor(OpenMPRegistrationFunction, 0, ComdatKey);
-    }
-    OpenMPRuntime->clear();
   }
   if (PGOReader) {
     getModule().setProfileSummary(PGOReader->getSummary().getMD(VMContext));
@@ -1600,9 +1566,6 @@ void CodeGenModule::SetFunctionAttributes(GlobalDecl GD, llvm::Function *F,
   // is handled with better precision by the receiving DSO.
   if (!CodeGenOpts.SanitizeCfiCrossDso)
     CreateFunctionTypeMetadataForIcall(FD, F);
-
-  if (getLangOpts().OpenMP && FD->hasAttr<OMPDeclareSimdDeclAttr>())
-    getOpenMPRuntime().emitDeclareSimdFunction(FD, F);
 }
 
 void CodeGenModule::addUsedGlobal(llvm::GlobalValue *GV) {
@@ -1793,10 +1756,6 @@ void CodeGenModule::EmitModuleLinkOptions() {
 }
 
 void CodeGenModule::EmitDeferred() {
-  // Emit deferred declare target declarations.
-  if (getLangOpts().OpenMP && !getLangOpts().OpenMPSimd)
-    getOpenMPRuntime().emitDeferredTargetDecls();
-
   // Emit code for any potentially referenced deferred decls.  Since a
   // previously unused static decl may become used during the generation of code
   // for a static function, iterate until no changes are made.
@@ -2050,13 +2009,6 @@ bool CodeGenModule::MayBeEmittedEagerly(const ValueDecl *Global) {
       // A definition of an inline constexpr static data member may change
       // linkage later if it's redeclared outside the class.
       return false;
-  // If OpenMP is enabled and threadprivates must be generated like TLS, delay
-  // codegen for global variables, because they may be marked as threadprivate.
-  if (LangOpts.OpenMP && LangOpts.OpenMPUseTLS &&
-      getContext().getTargetInfo().isTLSSupported() && isa<VarDecl>(Global) &&
-      !isTypeConstant(Global->getType(), false) &&
-      !OMPDeclareTargetDeclAttr::isDeclareTargetDeclaration(Global))
-    return false;
 
   return true;
 }
@@ -2164,18 +2116,6 @@ void CodeGenModule::EmitGlobal(GlobalDecl GD) {
     }
   }
 
-  if (LangOpts.OpenMP) {
-    // If this is OpenMP device, check if it is legal to emit this global
-    // normally.
-    if (OpenMPRuntime && OpenMPRuntime->emitTargetGlobal(GD))
-      return;
-    if (auto *DRD = dyn_cast<OMPDeclareReductionDecl>(Global)) {
-      if (MustBeEmitted(Global))
-        EmitOMPDeclareReduction(DRD);
-      return;
-    }
-  }
-
   // Ignore declarations, they will be emitted on their first use.
   if (const auto *FD = dyn_cast<FunctionDecl>(Global)) {
     // Forward declarations are emitted lazily on first use.
@@ -2198,20 +2138,6 @@ void CodeGenModule::EmitGlobal(GlobalDecl GD) {
     assert(VD->isFileVarDecl() && "Cannot emit local var decl as global.");
     if (VD->isThisDeclarationADefinition() != VarDecl::Definition &&
         !Context.isMSStaticDataMemberInlineDefinition(VD)) {
-      if (LangOpts.OpenMP) {
-        // Emit declaration of the must-be-emitted declare target variable.
-        if (llvm::Optional<OMPDeclareTargetDeclAttr::MapTypeTy> Res =
-                OMPDeclareTargetDeclAttr::isDeclareTargetDeclaration(VD)) {
-          if (*Res == OMPDeclareTargetDeclAttr::MT_To) {
-            (void)GetAddrOfGlobalVar(VD);
-          } else {
-            assert(*Res == OMPDeclareTargetDeclAttr::MT_Link &&
-                   "link claue expected.");
-            (void)getOpenMPRuntime().getAddrOfDeclareTargetLink(VD);
-          }
-          return;
-        }
-      }
       // If this declaration may have caused an inline variable definition to
       // change linkage, make sure that it's emitted.
       if (Context.getInlineVariableDefinitionKind(VD) ==
@@ -2708,22 +2634,6 @@ llvm::Constant *CodeGenModule::GetOrCreateLLVMFunction(
   // Any attempts to use a MultiVersion function should result in retrieving
   // the iFunc instead. Name Mangling will handle the rest of the changes.
   if (const FunctionDecl *FD = cast_or_null<FunctionDecl>(D)) {
-    // For the device mark the function as one that should be emitted.
-    if (getLangOpts().OpenMPIsDevice && OpenMPRuntime &&
-        !OpenMPRuntime->markAsGlobalTarget(GD) && FD->isDefined() &&
-        !DontDefer && !IsForDefinition) {
-      if (const FunctionDecl *FDDef = FD->getDefinition()) {
-        GlobalDecl GDDef;
-        if (const auto *CD = dyn_cast<CXXConstructorDecl>(FDDef))
-          GDDef = GlobalDecl(CD, GD.getCtorType());
-        else if (const auto *DD = dyn_cast<CXXDestructorDecl>(FDDef))
-          GDDef = GlobalDecl(DD, GD.getDtorType());
-        else
-          GDDef = GlobalDecl(FDDef);
-        EmitGlobal(GDDef);
-      }
-    }
-
     if (FD->isMultiVersion()) {
       const auto *TA = FD->getAttr<TargetAttr>();
       if (TA && TA->isDefaultVersion())
@@ -3038,9 +2948,6 @@ CodeGenModule::GetOrCreateLLVMGlobal(StringRef MangledName,
     if (D && !D->hasAttr<DLLImportAttr>() && !D->hasAttr<DLLExportAttr>())
       Entry->setDLLStorageClass(llvm::GlobalValue::DefaultStorageClass);
 
-    if (LangOpts.OpenMP && !LangOpts.OpenMPSimd && D)
-      getOpenMPRuntime().registerTargetGlobalVariable(D, Entry);
-
     if (Entry->getType() == Ty)
       return Entry;
 
@@ -3109,9 +3016,6 @@ CodeGenModule::GetOrCreateLLVMGlobal(StringRef MangledName,
 
   // Handle things which are present even on external declarations.
   if (D) {
-    if (LangOpts.OpenMP && !LangOpts.OpenMPSimd)
-      getOpenMPRuntime().registerTargetGlobalVariable(D, GV);
-
     // FIXME: This code is overly simple and should be merged with other global
     // handling.
     GV->setConstant(isTypeConstant(D->getType(), false));
@@ -3467,12 +3371,6 @@ void CodeGenModule::EmitGlobalVarDefinition(const VarDecl *D,
   // therefore no need to be translated.
   QualType ASTTy = D->getType();
   if (getLangOpts().OpenCL && ASTTy->isSamplerT())
-    return;
-
-  // If this is OpenMP device, check if it is legal to emit this global
-  // normally.
-  if (LangOpts.OpenMPIsDevice && OpenMPRuntime &&
-      OpenMPRuntime->emitTargetGlobalVariable(D))
     return;
 
   llvm::Constant *Init = nullptr;
@@ -4973,9 +4871,6 @@ void CodeGenModule::EmitTopLevelDecl(Decl *D) {
     // File-scope asm is ignored during device-side CUDA compilation.
     if (LangOpts.CUDA && LangOpts.CUDAIsDevice)
       break;
-    // File-scope asm is ignored during device-side OpenMP compilation.
-    if (LangOpts.OpenMPIsDevice)
-      break;
     auto *AD = cast<FileScopeAsmDecl>(D);
     getModule().appendModuleInlineAsm(AD->getAsmString()->getString());
     break;
@@ -5026,18 +4921,6 @@ void CodeGenModule::EmitTopLevelDecl(Decl *D) {
 
   case Decl::Export:
     EmitDeclContext(cast<ExportDecl>(D));
-    break;
-
-  case Decl::OMPThreadPrivate:
-    EmitOMPThreadPrivateDecl(cast<OMPThreadPrivateDecl>(D));
-    break;
-
-  case Decl::OMPDeclareReduction:
-    EmitOMPDeclareReduction(cast<OMPDeclareReductionDecl>(D));
-    break;
-
-  case Decl::OMPRequires:
-    EmitOMPRequiresDecl(cast<OMPRequiresDecl>(D));
     break;
 
   default:
@@ -5321,24 +5204,6 @@ llvm::Constant *CodeGenModule::GetAddrOfRTTIDescriptor(QualType Ty,
     return ObjCRuntime->GetEHType(Ty);
 
   return getCXXABI().getAddrOfRTTIDescriptor(Ty);
-}
-
-void CodeGenModule::EmitOMPThreadPrivateDecl(const OMPThreadPrivateDecl *D) {
-  // Do not emit threadprivates in simd-only mode.
-  if (LangOpts.OpenMP && LangOpts.OpenMPSimd)
-    return;
-  for (auto RefExpr : D->varlists()) {
-    auto *VD = cast<VarDecl>(cast<DeclRefExpr>(RefExpr)->getDecl());
-    bool PerformInit =
-        VD->getAnyInitializer() &&
-        !VD->getAnyInitializer()->isConstantInitializer(getContext(),
-                                                        /*ForRef=*/false);
-
-    Address Addr(GetAddrOfGlobalVar(VD), getContext().getDeclAlign(VD));
-    if (auto InitFunction = getOpenMPRuntime().emitThreadPrivateVarDefinition(
-            VD, Addr, RefExpr->getBeginLoc(), PerformInit))
-      CXXGlobalInits.push_back(InitFunction);
-  }
 }
 
 llvm::Metadata *

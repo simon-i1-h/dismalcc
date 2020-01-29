@@ -40,10 +40,6 @@ void Scope::setFlags(Scope *parent, unsigned flags) {
     TemplateParamParent = parent->TemplateParamParent;
     MSLastManglingParent = parent->MSLastManglingParent;
     MSCurManglingNumber = getMSLastManglingNumber();
-    if ((Flags & (FnScope | ClassScope | BlockScope | TemplateParamScope |
-                  FunctionPrototypeScope | AtCatchScope | ObjCMethodScope)) ==
-        0)
-      Flags |= parent->getFlags() & OpenMPSimdDirectiveScope;
   } else {
     Depth = 0;
     PrototypeDepth = 0;
@@ -159,9 +155,6 @@ void Scope::dumpImpl(raw_ostream &OS) const {
       {SwitchScope, "SwitchScope"},
       {TryScope, "TryScope"},
       {FnTryCatchScope, "FnTryCatchScope"},
-      {OpenMPDirectiveScope, "OpenMPDirectiveScope"},
-      {OpenMPLoopDirectiveScope, "OpenMPLoopDirectiveScope"},
-      {OpenMPSimdDirectiveScope, "OpenMPSimdDirectiveScope"},
       {EnumScope, "EnumScope"},
       {SEHTryScope, "SEHTryScope"},
       {SEHExceptScope, "SEHExceptScope"},

@@ -3,6 +3,7 @@
   - code formatter
   - ARC migrator
   - clang's static analyzer
+  - OpenMP
 
 0.2 (2020/1/13):
 - remove clang bindings and clang tools.

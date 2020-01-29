@@ -100,7 +100,6 @@ namespace clang {
     /// _Alignof and alignof return the required ABI alignment.
     UETT_AlignOf,
     UETT_VecStep,
-    UETT_OpenMPRequiredSimdAlign,
     /// Used for GCC's __alignof.
     /// __alignof returns the preferred alignment of a type, the alignment
     /// clang will attempt to give an object of the type if allowed by ABI.

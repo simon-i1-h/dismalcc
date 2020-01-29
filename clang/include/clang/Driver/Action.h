@@ -88,7 +88,7 @@ public:
 
     // The device offloading tool chains - one bit for each programming model.
     OFK_Cuda = 0x02,
-    OFK_OpenMP = 0x04,
+    // XXX 0x04: reserved by OpenMP
     OFK_HIP = 0x08,
   };
 

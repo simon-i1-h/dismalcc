@@ -25,7 +25,6 @@
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclContextInternals.h"
 #include "clang/AST/DeclObjC.h"
-#include "clang/AST/DeclOpenMP.h"
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/DeclarationName.h"
 #include "clang/AST/Expr.h"
@@ -1273,10 +1272,6 @@ void ASTContext::InitBuiltinTypes(const TargetInfo &Target,
   // Placeholder type for builtin functions.
   InitBuiltinType(BuiltinFnTy,  BuiltinType::BuiltinFn);
 
-  // Placeholder type for OMP array sections.
-  if (LangOpts.OpenMP)
-    InitBuiltinType(OMPArraySectionTy, BuiltinType::OMPArraySection);
-
   // C99 6.2.5p11.
   FloatComplexTy      = getComplexType(FloatTy);
   DoubleComplexTy     = getComplexType(DoubleTy);
@@ -2139,17 +2134,6 @@ unsigned ASTContext::getTypeUnadjustedAlign(const Type *T) const {
 
   MemoizedUnadjustedAlign[T] = UnadjustedAlign;
   return UnadjustedAlign;
-}
-
-unsigned ASTContext::getOpenMPDefaultSimdAlign(QualType T) const {
-  unsigned SimdAlign = getTargetInfo().getSimdDefaultAlign();
-  // Target ppc64 with QPX: simd default alignment for pointer to double is 32.
-  if ((getTargetInfo().getTriple().getArch() == llvm::Triple::ppc64 ||
-       getTargetInfo().getTriple().getArch() == llvm::Triple::ppc64le) &&
-      getTargetInfo().getABI() == "elfv1-qpx" &&
-      T->isSpecificBuiltinType(BuiltinType::Double))
-    SimdAlign = 256;
-  return SimdAlign;
 }
 
 /// toCharUnitsFromBits - Convert a size in bits to a size in characters.
@@ -9784,14 +9768,8 @@ bool ASTContext::DeclMustBeEmitted(const Decl *D) {
       return false;
   } else if (isa<PragmaCommentDecl>(D))
     return true;
-  else if (isa<OMPThreadPrivateDecl>(D))
-    return true;
   else if (isa<PragmaDetectMismatchDecl>(D))
     return true;
-  else if (isa<OMPThreadPrivateDecl>(D))
-    return !D->getDeclContext()->isDependentContext();
-  else if (isa<OMPDeclareReductionDecl>(D))
-    return !D->getDeclContext()->isDependentContext();
   else if (isa<ImportDecl>(D))
     return true;
   else
@@ -9872,12 +9850,6 @@ bool ASTContext::DeclMustBeEmitted(const Decl *D) {
 
   const auto *VD = cast<VarDecl>(D);
   assert(VD->isFileVarDecl() && "Expected file scoped var");
-
-  // If the decl is marked as `declare target to`, it should be emitted for the
-  // host and for the device.
-  if (LangOpts.OpenMP &&
-      OMPDeclareTargetDeclAttr::isDeclareTargetDeclaration(VD))
-    return true;
 
   if (VD->isThisDeclarationADefinition() == VarDecl::DeclarationOnly &&
       !isMSStaticDataMemberInlineDefinition(VD))

@@ -2719,13 +2719,6 @@ ScalarExprEmitter::VisitUnaryExprOrTypeTraitExpr(
 
       return size;
     }
-  } else if (E->getKind() == UETT_OpenMPRequiredSimdAlign) {
-    auto Alignment =
-        CGF.getContext()
-            .toCharUnitsFromBits(CGF.getContext().getOpenMPDefaultSimdAlign(
-                E->getTypeOfArgument()->getPointeeType()))
-            .getQuantity();
-    return llvm::ConstantInt::get(CGF.SizeTy, Alignment);
   }
 
   // If this isn't sizeof(vla), the result must be constant; use the constant

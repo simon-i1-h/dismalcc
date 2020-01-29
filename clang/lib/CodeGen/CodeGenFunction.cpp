@@ -17,7 +17,6 @@
 #include "CGCUDARuntime.h"
 #include "CGCXXABI.h"
 #include "CGDebugInfo.h"
-#include "CGOpenMPRuntime.h"
 #include "CodeGenModule.h"
 #include "CodeGenPGO.h"
 #include "TargetInfo.h"
@@ -101,9 +100,6 @@ CodeGenFunction::~CodeGenFunction() {
   // something.
   if (FirstBlockInfo)
     destroyBlockInfos(FirstBlockInfo);
-
-  if (getLangOpts().OpenMP && CurFn)
-    CGM.getOpenMPRuntime().functionFinished(*this);
 }
 
 CharUnits CodeGenFunction::getNaturalPointeeTypeAlignment(QualType T,
@@ -1104,10 +1100,6 @@ void CodeGenFunction::StartFunction(GlobalDecl GD,
   EmitStartEHSpec(CurCodeDecl);
 
   PrologueCleanupDepth = EHStack.stable_begin();
-
-  // Emit OpenMP specific initialization of the device functions.
-  if (getLangOpts().OpenMP && CurCodeDecl)
-    CGM.getOpenMPRuntime().emitFunctionProlog(*this, CurCodeDecl);
 
   EmitFunctionProlog(*CurFnInfo, CurFn, Args);
 

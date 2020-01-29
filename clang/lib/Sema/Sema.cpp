@@ -144,7 +144,7 @@ Sema::Sema(Preprocessor &pp, ASTContext &ctxt, ASTConsumer &consumer,
       NonInstantiationEntries(0), ArgumentPackSubstitutionIndex(-1),
       CurrentInstantiationScope(nullptr), DisableTypoCorrection(false),
       TyposCorrected(0), AnalysisWarnings(*this),
-      ThreadSafetyDeclCache(nullptr), VarDataSharingAttributesStack(nullptr),
+      ThreadSafetyDeclCache(nullptr),
       CurScope(nullptr), Ident_super(nullptr), Ident___float128(nullptr) {
   TUScope = nullptr;
 
@@ -166,9 +166,6 @@ Sema::Sema(Preprocessor &pp, ASTContext &ctxt, ASTConsumer &consumer,
       nullptr, ExpressionEvaluationContextRecord::EK_Other);
 
   PreallocatedFunctionScope.reset(new FunctionScopeInfo(Diags));
-
-  // Initialization of data sharing attributes stack for OpenMP
-  InitDataSharingAttributesStack();
 
   std::unique_ptr<sema::SemaPPCallbacks> Callbacks =
       llvm::make_unique<sema::SemaPPCallbacks>();
@@ -360,9 +357,6 @@ Sema::~Sema() {
     delete ExternalSource;
 
   threadSafety::threadSafetyCleanup(ThreadSafetyDeclCache);
-
-  // Destroys data sharing attributes stack for OpenMP
-  DestroyDataSharingAttributesStack();
 
   // Detach from the PP callback handler which outlives Sema since it's owned
   // by the preprocessor.
@@ -1385,8 +1379,6 @@ void Sema::PushFunctionScope() {
   } else {
     FunctionScopes.push_back(new FunctionScopeInfo(getDiagnostics()));
   }
-  if (LangOpts.OpenMP)
-    pushOpenMPFunctionRegion();
 }
 
 void Sema::PushBlockScope(Scope *BlockScope, BlockDecl *Block) {
@@ -1473,9 +1465,6 @@ void Sema::PopFunctionScopeInfo(const AnalysisBasedWarnings::Policy *WP,
   markEscapingByrefs(*FunctionScopes.back(), *this);
 
   FunctionScopeInfo *Scope = FunctionScopes.pop_back_val();
-
-  if (LangOpts.OpenMP)
-    popOpenMPFunctionRegion(Scope);
 
   // Issue any analysis-based warnings.
   if (WP && D)
@@ -1872,8 +1861,7 @@ IdentifierInfo *Sema::getFloat128Identifier() const {
 void Sema::PushCapturedRegionScope(Scope *S, CapturedDecl *CD, RecordDecl *RD,
                                    CapturedRegionKind K) {
   CapturingScopeInfo *CSI = new CapturedRegionScopeInfo(
-      getDiagnostics(), S, CD, RD, CD->getContextParam(), K,
-      (getLangOpts().OpenMP && K == CR_OpenMP) ? getOpenMPNestingLevel() : 0);
+      getDiagnostics(), S, CD, RD, CD->getContextParam(), K);
   CSI->ReturnType = Context.VoidTy;
   FunctionScopes.push_back(CSI);
 }

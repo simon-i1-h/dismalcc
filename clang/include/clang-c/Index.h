@@ -2171,9 +2171,7 @@ enum CXCursorKind {
    */
   CXCursor_ObjCSelfExpr                  = 146,
 
-  /** OpenMP 4.0 [2.4, Array Section].
-   */
-  CXCursor_OMPArraySectionExpr           = 147,
+  /* XXX 147: reserved by OpenMP */
 
   /** Represents an @available(...) check.
    */
@@ -2339,199 +2337,24 @@ enum CXCursorKind {
    */
   CXCursor_DeclStmt                      = 231,
 
-  /** OpenMP parallel directive.
+  /*
+   * XXX  232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245,
+   * 246: reserved by OpenMP
    */
-  CXCursor_OMPParallelDirective          = 232,
-
-  /** OpenMP SIMD directive.
-   */
-  CXCursor_OMPSimdDirective              = 233,
-
-  /** OpenMP for directive.
-   */
-  CXCursor_OMPForDirective               = 234,
-
-  /** OpenMP sections directive.
-   */
-  CXCursor_OMPSectionsDirective          = 235,
-
-  /** OpenMP section directive.
-   */
-  CXCursor_OMPSectionDirective           = 236,
-
-  /** OpenMP single directive.
-   */
-  CXCursor_OMPSingleDirective            = 237,
-
-  /** OpenMP parallel for directive.
-   */
-  CXCursor_OMPParallelForDirective       = 238,
-
-  /** OpenMP parallel sections directive.
-   */
-  CXCursor_OMPParallelSectionsDirective  = 239,
-
-  /** OpenMP task directive.
-   */
-  CXCursor_OMPTaskDirective              = 240,
-
-  /** OpenMP master directive.
-   */
-  CXCursor_OMPMasterDirective            = 241,
-
-  /** OpenMP critical directive.
-   */
-  CXCursor_OMPCriticalDirective          = 242,
-
-  /** OpenMP taskyield directive.
-   */
-  CXCursor_OMPTaskyieldDirective         = 243,
-
-  /** OpenMP barrier directive.
-   */
-  CXCursor_OMPBarrierDirective           = 244,
-
-  /** OpenMP taskwait directive.
-   */
-  CXCursor_OMPTaskwaitDirective          = 245,
-
-  /** OpenMP flush directive.
-   */
-  CXCursor_OMPFlushDirective             = 246,
 
   /** Windows Structured Exception Handling's leave statement.
    */
   CXCursor_SEHLeaveStmt                  = 247,
 
-  /** OpenMP ordered directive.
+  /*
+   * XXX  248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261,
+   * 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276,
+   * 277, 278, 279: reserved by OpenMP
    */
-  CXCursor_OMPOrderedDirective           = 248,
 
-  /** OpenMP atomic directive.
-   */
-  CXCursor_OMPAtomicDirective            = 249,
-
-  /** OpenMP for SIMD directive.
-   */
-  CXCursor_OMPForSimdDirective           = 250,
-
-  /** OpenMP parallel for SIMD directive.
-   */
-  CXCursor_OMPParallelForSimdDirective   = 251,
-
-  /** OpenMP target directive.
-   */
-  CXCursor_OMPTargetDirective            = 252,
-
-  /** OpenMP teams directive.
-   */
-  CXCursor_OMPTeamsDirective             = 253,
-
-  /** OpenMP taskgroup directive.
-   */
-  CXCursor_OMPTaskgroupDirective         = 254,
-
-  /** OpenMP cancellation point directive.
-   */
-  CXCursor_OMPCancellationPointDirective = 255,
-
-  /** OpenMP cancel directive.
-   */
-  CXCursor_OMPCancelDirective            = 256,
-
-  /** OpenMP target data directive.
-   */
-  CXCursor_OMPTargetDataDirective        = 257,
-
-  /** OpenMP taskloop directive.
-   */
-  CXCursor_OMPTaskLoopDirective          = 258,
-
-  /** OpenMP taskloop simd directive.
-   */
-  CXCursor_OMPTaskLoopSimdDirective      = 259,
-
-  /** OpenMP distribute directive.
-   */
-  CXCursor_OMPDistributeDirective        = 260,
-
-  /** OpenMP target enter data directive.
-   */
-  CXCursor_OMPTargetEnterDataDirective   = 261,
-
-  /** OpenMP target exit data directive.
-   */
-  CXCursor_OMPTargetExitDataDirective    = 262,
-
-  /** OpenMP target parallel directive.
-   */
-  CXCursor_OMPTargetParallelDirective    = 263,
-
-  /** OpenMP target parallel for directive.
-   */
-  CXCursor_OMPTargetParallelForDirective = 264,
-
-  /** OpenMP target update directive.
-   */
-  CXCursor_OMPTargetUpdateDirective      = 265,
-
-  /** OpenMP distribute parallel for directive.
-   */
-  CXCursor_OMPDistributeParallelForDirective = 266,
-
-  /** OpenMP distribute parallel for simd directive.
-   */
-  CXCursor_OMPDistributeParallelForSimdDirective = 267,
-
-  /** OpenMP distribute simd directive.
-   */
-  CXCursor_OMPDistributeSimdDirective = 268,
-
-  /** OpenMP target parallel for simd directive.
-   */
-  CXCursor_OMPTargetParallelForSimdDirective = 269,
-
-  /** OpenMP target simd directive.
-   */
-  CXCursor_OMPTargetSimdDirective = 270,
-
-  /** OpenMP teams distribute directive.
-   */
-  CXCursor_OMPTeamsDistributeDirective = 271,
-
-  /** OpenMP teams distribute simd directive.
-   */
-  CXCursor_OMPTeamsDistributeSimdDirective = 272,
-
-  /** OpenMP teams distribute parallel for simd directive.
-   */
-  CXCursor_OMPTeamsDistributeParallelForSimdDirective = 273,
-
-  /** OpenMP teams distribute parallel for directive.
-   */
-  CXCursor_OMPTeamsDistributeParallelForDirective = 274,
-
-  /** OpenMP target teams directive.
-   */
-  CXCursor_OMPTargetTeamsDirective = 275,
-
-  /** OpenMP target teams distribute directive.
-   */
-  CXCursor_OMPTargetTeamsDistributeDirective = 276,
-
-  /** OpenMP target teams distribute parallel for directive.
-   */
-  CXCursor_OMPTargetTeamsDistributeParallelForDirective = 277,
-
-  /** OpenMP target teams distribute parallel for simd directive.
-   */
-  CXCursor_OMPTargetTeamsDistributeParallelForSimdDirective = 278,
-
-  /** OpenMP target teams distribute simd directive.
-   */
-  CXCursor_OMPTargetTeamsDistributeSimdDirective = 279,
-
-  CXCursor_LastStmt = CXCursor_OMPTargetTeamsDistributeSimdDirective,
+  /* XXX ???? */
+  /* CXCursor_LastStmt = CXCursor_OMPTargetTeamsDistributeSimdDirective, */
+  CXCursor_LastStmt = CXCursor_SEHLeaveStmt,
 
   /**
    * Cursor that represents the translation unit itself.

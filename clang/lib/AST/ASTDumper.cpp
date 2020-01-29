@@ -20,7 +20,6 @@
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclLookups.h"
 #include "clang/AST/DeclObjC.h"
-#include "clang/AST/DeclOpenMP.h"
 #include "clang/AST/DeclVisitor.h"
 #include "clang/AST/LocInfoType.h"
 #include "clang/AST/StmtVisitor.h"
@@ -231,12 +230,6 @@ namespace  {
     void VisitPragmaDetectMismatchDecl(const PragmaDetectMismatchDecl *D);
     void VisitCapturedDecl(const CapturedDecl *D);
 
-    // OpenMP decls
-    void VisitOMPThreadPrivateDecl(const OMPThreadPrivateDecl *D);
-    void VisitOMPDeclareReductionDecl(const OMPDeclareReductionDecl *D);
-    void VisitOMPRequiresDecl(const OMPRequiresDecl *D);
-    void VisitOMPCapturedExprDecl(const OMPCapturedExprDecl *D);
-
     // C++ Decls
     void VisitNamespaceDecl(const NamespaceDecl *D);
     void VisitUsingDirectiveDecl(const UsingDirectiveDecl *D);
@@ -291,10 +284,6 @@ namespace  {
     void VisitAttributedStmt(const AttributedStmt *Node);
     void VisitCXXCatchStmt(const CXXCatchStmt *Node);
     void VisitCapturedStmt(const CapturedStmt *Node);
-
-    // OpenMP
-    void Visit(const OMPClause *C);
-    void VisitOMPExecutableDirective(const OMPExecutableDirective *Node);
 
     // Exprs
     void VisitInitListExpr(const InitListExpr *ILE);
@@ -738,66 +727,6 @@ void ASTDumper::VisitPragmaDetectMismatchDecl(
 
 void ASTDumper::VisitCapturedDecl(const CapturedDecl *D) {
   dumpStmt(D->getBody());
-}
-
-//===----------------------------------------------------------------------===//
-// OpenMP Declarations
-//===----------------------------------------------------------------------===//
-
-void ASTDumper::VisitOMPThreadPrivateDecl(const OMPThreadPrivateDecl *D) {
-  for (auto *E : D->varlists())
-    dumpStmt(E);
-}
-
-void ASTDumper::VisitOMPDeclareReductionDecl(const OMPDeclareReductionDecl *D) {
-  NodeDumper.dumpName(D);
-  NodeDumper.dumpType(D->getType());
-  OS << " combiner";
-  NodeDumper.dumpPointer(D->getCombiner());
-  if (const auto *Initializer = D->getInitializer()) {
-    OS << " initializer";
-    NodeDumper.dumpPointer(Initializer);
-    switch (D->getInitializerKind()) {
-    case OMPDeclareReductionDecl::DirectInit:
-      OS << " omp_priv = ";
-      break;
-    case OMPDeclareReductionDecl::CopyInit:
-      OS << " omp_priv ()";
-      break;
-    case OMPDeclareReductionDecl::CallInit:
-      break;
-    }
-  }
-
-  dumpStmt(D->getCombiner());
-  if (const auto *Initializer = D->getInitializer())
-    dumpStmt(Initializer);
-}
-
-void ASTDumper::VisitOMPRequiresDecl(const OMPRequiresDecl *D) {
-  for (auto *C : D->clauselists()) {
-    dumpChild([=] {
-      if (!C) {
-        ColorScope Color(OS, ShowColors, NullColor);
-        OS << "<<<NULL>>> OMPClause";
-        return;
-      }
-      {
-        ColorScope Color(OS, ShowColors, AttrColor);
-        StringRef ClauseName(getOpenMPClauseName(C->getClauseKind()));
-        OS << "OMP" << ClauseName.substr(/*Start=*/0, /*N=*/1).upper()
-           << ClauseName.drop_front() << "Clause";
-      }
-      NodeDumper.dumpPointer(C);
-      NodeDumper.dumpSourceRange(SourceRange(C->getBeginLoc(), C->getEndLoc()));
-    });
-  }
-}
-
-void ASTDumper::VisitOMPCapturedExprDecl(const OMPCapturedExprDecl *D) {
-  NodeDumper.dumpName(D);
-  NodeDumper.dumpType(D->getType());
-  dumpStmt(D->getInit());
 }
 
 //===----------------------------------------------------------------------===//
@@ -1436,24 +1365,6 @@ void ASTDumper::VisitCXXCatchStmt(const CXXCatchStmt *Node) {
 
 void ASTDumper::VisitCapturedStmt(const CapturedStmt *Node) {
   dumpDecl(Node->getCapturedDecl());
-}
-
-//===----------------------------------------------------------------------===//
-//  OpenMP dumping methods.
-//===----------------------------------------------------------------------===//
-
-void ASTDumper::Visit(const OMPClause *C) {
-  dumpChild([=] {
-    NodeDumper.Visit(C);
-    for (auto *S : C->children())
-      dumpStmt(S);
-  });
-}
-
-void ASTDumper::VisitOMPExecutableDirective(
-    const OMPExecutableDirective *Node) {
-  for (const auto *C : Node->clauses())
-    Visit(C);
 }
 
 //===----------------------------------------------------------------------===//

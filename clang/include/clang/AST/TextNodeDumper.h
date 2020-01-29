@@ -169,8 +169,6 @@ public:
 
   void Visit(const CXXCtorInitializer *Init);
 
-  void Visit(const OMPClause *C);
-
   void Visit(const BlockDecl::Capture &C);
 
   void dumpPointer(const void *Ptr);

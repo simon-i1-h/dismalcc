@@ -14,10 +14,8 @@
 #ifndef LLVM_CLANG_PARSE_PARSER_H
 #define LLVM_CLANG_PARSE_PARSER_H
 
-#include "clang/AST/OpenMPClause.h"
 #include "clang/AST/Availability.h"
 #include "clang/Basic/BitmaskEnum.h"
-#include "clang/Basic/OpenMPKinds.h"
 #include "clang/Basic/OperatorPrecedence.h"
 #include "clang/Basic/Specifiers.h"
 #include "clang/Lex/CodeCompletionHandler.h"
@@ -47,7 +45,6 @@ namespace clang {
   class ColonProtectionRAIIObject;
   class InMessageExpressionRAIIObject;
   class PoisonSEHIdentifiersRAIIObject;
-  class OMPClause;
   class ObjCTypeParamList;
   class ObjCTypeParameter;
 
@@ -166,7 +163,6 @@ class Parser : public CodeCompletionHandler {
   std::unique_ptr<PragmaHandler> RedefineExtnameHandler;
   std::unique_ptr<PragmaHandler> FPContractHandler;
   std::unique_ptr<PragmaHandler> OpenCLExtensionHandler;
-  std::unique_ptr<PragmaHandler> OpenMPHandler;
   std::unique_ptr<PragmaHandler> PCSectionHandler;
   std::unique_ptr<PragmaHandler> MSCommentHandler;
   std::unique_ptr<PragmaHandler> MSDetectMismatchHandler;
@@ -2146,8 +2142,6 @@ private:
   // 'for-init-statement' part of a 'for' statement.
   /// Returns true for declaration, false for expression.
   bool isForInitDeclaration() {
-    if (getLangOpts().OpenMP)
-      Actions.startOpenMPLoop();
     if (getLangOpts().CPlusPlus)
       return isCXXSimpleDeclaration(/*AllowForRangeDecl=*/true);
     return isDeclarationSpecifier(true);
@@ -2770,126 +2764,6 @@ private:
                                   ParsedType ObjectType,
                                   UnqualifiedId &Result);
 
-  //===--------------------------------------------------------------------===//
-  // OpenMP: Directives and clauses.
-  /// Parse clauses for '#pragma omp declare simd'.
-  DeclGroupPtrTy ParseOMPDeclareSimdClauses(DeclGroupPtrTy Ptr,
-                                            CachedTokens &Toks,
-                                            SourceLocation Loc);
-  /// Parse clauses for '#pragma omp declare target'.
-  DeclGroupPtrTy ParseOMPDeclareTargetClauses();
-  /// Parse '#pragma omp end declare target'.
-  void ParseOMPEndDeclareTargetDirective(OpenMPDirectiveKind DKind,
-                                         SourceLocation Loc);
-  /// Parses declarative OpenMP directives.
-  DeclGroupPtrTy ParseOpenMPDeclarativeDirectiveWithExtDecl(
-      AccessSpecifier &AS, ParsedAttributesWithRange &Attrs,
-      DeclSpec::TST TagType = DeclSpec::TST_unspecified,
-      Decl *TagDecl = nullptr);
-  /// Parse 'omp declare reduction' construct.
-  DeclGroupPtrTy ParseOpenMPDeclareReductionDirective(AccessSpecifier AS);
-  /// Parses initializer for provided omp_priv declaration inside the reduction
-  /// initializer.
-  void ParseOpenMPReductionInitializerForDecl(VarDecl *OmpPrivParm);
-
-  /// Parses simple list of variables.
-  ///
-  /// \param Kind Kind of the directive.
-  /// \param Callback Callback function to be called for the list elements.
-  /// \param AllowScopeSpecifier true, if the variables can have fully
-  /// qualified names.
-  ///
-  bool ParseOpenMPSimpleVarList(
-      OpenMPDirectiveKind Kind,
-      const llvm::function_ref<void(CXXScopeSpec &, DeclarationNameInfo)> &
-          Callback,
-      bool AllowScopeSpecifier);
-  /// Parses declarative or executable directive.
-  ///
-  /// \param Allowed ACK_Any, if any directives are allowed,
-  /// ACK_StatementsOpenMPAnyExecutable - if any executable directives are
-  /// allowed, ACK_StatementsOpenMPNonStandalone - if only non-standalone
-  /// executable directives are allowed.
-  ///
-  StmtResult
-  ParseOpenMPDeclarativeOrExecutableDirective(AllowedConstructsKind Allowed);
-  /// Parses clause of kind \a CKind for directive of a kind \a Kind.
-  ///
-  /// \param DKind Kind of current directive.
-  /// \param CKind Kind of current clause.
-  /// \param FirstClause true, if this is the first clause of a kind \a CKind
-  /// in current directive.
-  ///
-  OMPClause *ParseOpenMPClause(OpenMPDirectiveKind DKind,
-                               OpenMPClauseKind CKind, bool FirstClause);
-  /// Parses clause with a single expression of a kind \a Kind.
-  ///
-  /// \param Kind Kind of current clause.
-  /// \param ParseOnly true to skip the clause's semantic actions and return
-  /// nullptr.
-  ///
-  OMPClause *ParseOpenMPSingleExprClause(OpenMPClauseKind Kind,
-                                         bool ParseOnly);
-  /// Parses simple clause of a kind \a Kind.
-  ///
-  /// \param Kind Kind of current clause.
-  /// \param ParseOnly true to skip the clause's semantic actions and return
-  /// nullptr.
-  ///
-  OMPClause *ParseOpenMPSimpleClause(OpenMPClauseKind Kind, bool ParseOnly);
-  /// Parses clause with a single expression and an additional argument
-  /// of a kind \a Kind.
-  ///
-  /// \param Kind Kind of current clause.
-  /// \param ParseOnly true to skip the clause's semantic actions and return
-  /// nullptr.
-  ///
-  OMPClause *ParseOpenMPSingleExprWithArgClause(OpenMPClauseKind Kind,
-                                                bool ParseOnly);
-  /// Parses clause without any additional arguments.
-  ///
-  /// \param Kind Kind of current clause.
-  /// \param ParseOnly true to skip the clause's semantic actions and return
-  /// nullptr.
-  ///
-  OMPClause *ParseOpenMPClause(OpenMPClauseKind Kind, bool ParseOnly = false);
-  /// Parses clause with the list of variables of a kind \a Kind.
-  ///
-  /// \param Kind Kind of current clause.
-  /// \param ParseOnly true to skip the clause's semantic actions and return
-  /// nullptr.
-  ///
-  OMPClause *ParseOpenMPVarListClause(OpenMPDirectiveKind DKind,
-                                      OpenMPClauseKind Kind, bool ParseOnly);
-
-public:
-  /// Parses simple expression in parens for single-expression clauses of OpenMP
-  /// constructs.
-  /// \param RLoc Returned location of right paren.
-  ExprResult ParseOpenMPParensExpr(StringRef ClauseName, SourceLocation &RLoc);
-
-  /// Data used for parsing list of variables in OpenMP clauses.
-  struct OpenMPVarListDataTy {
-    Expr *TailExpr = nullptr;
-    SourceLocation ColonLoc;
-    SourceLocation RLoc;
-    CXXScopeSpec ReductionIdScopeSpec;
-    DeclarationNameInfo ReductionId;
-    OpenMPDependClauseKind DepKind = OMPC_DEPEND_unknown;
-    OpenMPLinearClauseKind LinKind = OMPC_LINEAR_val;
-    SmallVector<OpenMPMapModifierKind, OMPMapClause::NumberOfModifiers>
-    MapTypeModifiers;
-    SmallVector<SourceLocation, OMPMapClause::NumberOfModifiers>
-    MapTypeModifiersLoc;
-    OpenMPMapClauseKind MapType = OMPC_MAP_unknown;
-    bool IsMapTypeImplicit = false;
-    SourceLocation DepLinMapLoc;
-  };
-
-  /// Parses clauses with list.
-  bool ParseOpenMPVarList(OpenMPDirectiveKind DKind, OpenMPClauseKind Kind,
-                          SmallVectorImpl<Expr *> &Vars,
-                          OpenMPVarListDataTy &Data);
   bool ParseUnqualifiedId(CXXScopeSpec &SS, bool EnteringContext,
                           bool AllowDestructorName,
                           bool AllowConstructorName,

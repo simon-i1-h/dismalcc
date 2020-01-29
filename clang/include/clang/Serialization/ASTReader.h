@@ -18,7 +18,6 @@
 #include "clang/AST/DeclObjC.h"
 #include "clang/AST/DeclarationName.h"
 #include "clang/AST/NestedNameSpecifier.h"
-#include "clang/AST/OpenMPClause.h"
 #include "clang/AST/TemplateBase.h"
 #include "clang/AST/TemplateName.h"
 #include "clang/AST/Type.h"
@@ -2677,21 +2676,6 @@ private:
 inline void PCHValidator::Error(const char *Msg) {
   Reader.Error(Msg);
 }
-
-class OMPClauseReader : public OMPClauseVisitor<OMPClauseReader> {
-  ASTRecordReader &Record;
-  ASTContext &Context;
-
-public:
-  OMPClauseReader(ASTRecordReader &Record)
-      : Record(Record), Context(Record.getContext()) {}
-
-#define OPENMP_CLAUSE(Name, Class) void Visit##Class(Class *C);
-#include "clang/Basic/OpenMPKinds.def"
-  OMPClause *readClause();
-  void VisitOMPClauseWithPreInit(OMPClauseWithPreInit *C);
-  void VisitOMPClauseWithPostUpdate(OMPClauseWithPostUpdate *C);
-};
 
 } // namespace clang
 

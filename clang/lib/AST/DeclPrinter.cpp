@@ -99,10 +99,6 @@ namespace {
     void VisitUnresolvedUsingValueDecl(UnresolvedUsingValueDecl *D);
     void VisitUsingDecl(UsingDecl *D);
     void VisitUsingShadowDecl(UsingShadowDecl *D);
-    void VisitOMPThreadPrivateDecl(OMPThreadPrivateDecl *D);
-    void VisitOMPRequiresDecl(OMPRequiresDecl *D);
-    void VisitOMPDeclareReductionDecl(OMPDeclareReductionDecl *D);
-    void VisitOMPCapturedExprDecl(OMPCapturedExprDecl *D);
 
     void printTemplateParameters(const TemplateParameterList *Params);
     void printTemplateArguments(const TemplateArgumentList &Args,
@@ -423,10 +419,7 @@ void DeclPrinter::VisitDeclContext(DeclContext *DC, bool Indent) {
 
     // FIXME: Need to be able to tell the DeclPrinter when
     const char *Terminator = nullptr;
-    if (isa<OMPThreadPrivateDecl>(*D) || isa<OMPDeclareReductionDecl>(*D) ||
-        isa<OMPRequiresDecl>(*D))
-      Terminator = nullptr;
-    else if (isa<ObjCMethodDecl>(*D) && cast<ObjCMethodDecl>(*D)->hasBody())
+    if (isa<ObjCMethodDecl>(*D) && cast<ObjCMethodDecl>(*D)->hasBody())
       Terminator = nullptr;
     else if (auto FD = dyn_cast<FunctionDecl>(*D)) {
       if (FD->isThisDeclarationADefinition())
@@ -463,11 +456,6 @@ void DeclPrinter::VisitDeclContext(DeclContext *DC, bool Indent) {
       ; // StmtPrinter already added '\n' after CompoundStmt.
     else
       Out << "\n";
-
-    // Declare target attribute is special one, natural spelling for the pragma
-    // assumes "ending" construct so print it here.
-    if (D->hasAttr<OMPDeclareTargetDeclAttr>())
-      Out << "#pragma omp end declare target\n";
   }
 
   if (!Decls.empty())
@@ -1093,10 +1081,6 @@ void DeclPrinter::VisitFunctionTemplateDecl(FunctionTemplateDecl *D) {
       printTemplateParameters(FD->getTemplateParameterList(I));
   }
   VisitRedeclarableTemplateDecl(D);
-  // Declare target attribute is special one, natural spelling for the pragma
-  // assumes "ending" construct so print it here.
-  if (D->getTemplatedDecl()->hasAttr<OMPDeclareTargetDeclAttr>())
-    Out << "#pragma omp end declare target\n";
 
   // Never print "instantiations" for deduction guides (they don't really
   // have them).
@@ -1531,74 +1515,3 @@ void DeclPrinter::VisitUnresolvedUsingValueDecl(UnresolvedUsingValueDecl *D) {
 void DeclPrinter::VisitUsingShadowDecl(UsingShadowDecl *D) {
   // ignore
 }
-
-void DeclPrinter::VisitOMPThreadPrivateDecl(OMPThreadPrivateDecl *D) {
-  Out << "#pragma omp threadprivate";
-  if (!D->varlist_empty()) {
-    for (OMPThreadPrivateDecl::varlist_iterator I = D->varlist_begin(),
-                                                E = D->varlist_end();
-                                                I != E; ++I) {
-      Out << (I == D->varlist_begin() ? '(' : ',');
-      NamedDecl *ND = cast<DeclRefExpr>(*I)->getDecl();
-      ND->printQualifiedName(Out);
-    }
-    Out << ")";
-  }
-}
-
-void DeclPrinter::VisitOMPRequiresDecl(OMPRequiresDecl *D) {
-  Out << "#pragma omp requires ";
-  if (!D->clauselist_empty()) {
-    OMPClausePrinter Printer(Out, Policy);
-    for (auto I = D->clauselist_begin(), E = D->clauselist_end(); I != E; ++I)
-      Printer.Visit(*I);
-  }
-}
-
-void DeclPrinter::VisitOMPDeclareReductionDecl(OMPDeclareReductionDecl *D) {
-  if (!D->isInvalidDecl()) {
-    Out << "#pragma omp declare reduction (";
-    if (D->getDeclName().getNameKind() == DeclarationName::CXXOperatorName) {
-      static const char *const OperatorNames[NUM_OVERLOADED_OPERATORS] = {
-          nullptr,
-#define OVERLOADED_OPERATOR(Name, Spelling, Token, Unary, Binary, MemberOnly)  \
-          Spelling,
-#include "clang/Basic/OperatorKinds.def"
-      };
-      const char *OpName =
-          OperatorNames[D->getDeclName().getCXXOverloadedOperator()];
-      assert(OpName && "not an overloaded operator");
-      Out << OpName;
-    } else {
-      assert(D->getDeclName().isIdentifier());
-      D->printName(Out);
-    }
-    Out << " : ";
-    D->getType().print(Out, Policy);
-    Out << " : ";
-    D->getCombiner()->printPretty(Out, nullptr, Policy, 0);
-    Out << ")";
-    if (auto *Init = D->getInitializer()) {
-      Out << " initializer(";
-      switch (D->getInitializerKind()) {
-      case OMPDeclareReductionDecl::DirectInit:
-        Out << "omp_priv(";
-        break;
-      case OMPDeclareReductionDecl::CopyInit:
-        Out << "omp_priv = ";
-        break;
-      case OMPDeclareReductionDecl::CallInit:
-        break;
-      }
-      Init->printPretty(Out, nullptr, Policy, 0);
-      if (D->getInitializerKind() == OMPDeclareReductionDecl::DirectInit)
-        Out << ")";
-      Out << ")";
-    }
-  }
-}
-
-void DeclPrinter::VisitOMPCapturedExprDecl(OMPCapturedExprDecl *D) {
-  D->getInit()->printPretty(Out, nullptr, Policy, Indentation);
-}
-

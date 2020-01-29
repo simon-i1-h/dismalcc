@@ -1783,7 +1783,7 @@ void CompilerInvocation::setLangDefaults(LangOptions &Opts, InputKind IK,
   // input kind + language standard.
   //
   // FIXME: Perhaps a better model would be for a single source file to have
-  // multiple language standards (C / C++ std, ObjC std, OpenCL std, OpenMP std)
+  // multiple language standards (C / C++ std, ObjC std, OpenCL std)
   // simultaneously active?
   if (IK.getLanguage() == InputKind::Asm) {
     Opts.AsmPreprocessor = 1;
@@ -2521,102 +2521,6 @@ static void ParseLangArgs(LangOptions &Opts, ArgList &Args, InputKind IK,
     }
   }
 
-  // Check if -fopenmp is specified.
-  Opts.OpenMP = Args.hasArg(options::OPT_fopenmp) ? 1 : 0;
-  // Check if -fopenmp-simd is specified.
-  bool IsSimdSpecified =
-      Args.hasFlag(options::OPT_fopenmp_simd, options::OPT_fno_openmp_simd,
-                   /*Default=*/false);
-  Opts.OpenMPSimd = !Opts.OpenMP && IsSimdSpecified;
-  Opts.OpenMPUseTLS =
-      Opts.OpenMP && !Args.hasArg(options::OPT_fnoopenmp_use_tls);
-  Opts.OpenMPIsDevice =
-      Opts.OpenMP && Args.hasArg(options::OPT_fopenmp_is_device);
-  bool IsTargetSpecified =
-      Opts.OpenMPIsDevice || Args.hasArg(options::OPT_fopenmp_targets_EQ);
-
-  if (Opts.OpenMP || Opts.OpenMPSimd) {
-    if (int Version = getLastArgIntValue(
-            Args, OPT_fopenmp_version_EQ,
-            (IsSimdSpecified || IsTargetSpecified) ? 45 : Opts.OpenMP, Diags))
-      Opts.OpenMP = Version;
-    else if (IsSimdSpecified || IsTargetSpecified)
-      Opts.OpenMP = 45;
-    // Provide diagnostic when a given target is not expected to be an OpenMP
-    // device or host.
-    if (!Opts.OpenMPIsDevice) {
-      switch (T.getArch()) {
-      default:
-        break;
-      // Add unsupported host targets here:
-      case llvm::Triple::nvptx:
-      case llvm::Triple::nvptx64:
-        Diags.Report(diag::err_drv_omp_host_target_not_supported)
-            << TargetOpts.Triple;
-        break;
-      }
-    }
-  }
-
-  // Set the flag to prevent the implementation from emitting device exception
-  // handling code for those requiring so.
-  Opts.OpenMPHostCXXExceptions = Opts.Exceptions && Opts.CXXExceptions;
-  if ((Opts.OpenMPIsDevice && T.isNVPTX()) || Opts.OpenCLCPlusPlus) {
-    Opts.Exceptions = 0;
-    Opts.CXXExceptions = 0;
-  }
-  if (Opts.OpenMPIsDevice && T.isNVPTX()) {
-    Opts.OpenMPCUDANumSMs =
-        getLastArgIntValue(Args, options::OPT_fopenmp_cuda_number_of_sm_EQ,
-                           Opts.OpenMPCUDANumSMs, Diags);
-    Opts.OpenMPCUDABlocksPerSM =
-        getLastArgIntValue(Args, options::OPT_fopenmp_cuda_blocks_per_sm_EQ,
-                           Opts.OpenMPCUDABlocksPerSM, Diags);
-  }
-
-  // Prevent auto-widening the representation of loop counters during an
-  // OpenMP collapse clause.
-  Opts.OpenMPOptimisticCollapse =
-      Args.hasArg(options::OPT_fopenmp_optimistic_collapse) ? 1 : 0;
-
-  // Get the OpenMP target triples if any.
-  if (Arg *A = Args.getLastArg(options::OPT_fopenmp_targets_EQ)) {
-
-    for (unsigned i = 0; i < A->getNumValues(); ++i) {
-      llvm::Triple TT(A->getValue(i));
-
-      if (TT.getArch() == llvm::Triple::UnknownArch ||
-          !(TT.getArch() == llvm::Triple::ppc ||
-            TT.getArch() == llvm::Triple::ppc64 ||
-            TT.getArch() == llvm::Triple::ppc64le ||
-            TT.getArch() == llvm::Triple::nvptx ||
-            TT.getArch() == llvm::Triple::nvptx64 ||
-            TT.getArch() == llvm::Triple::x86 ||
-            TT.getArch() == llvm::Triple::x86_64))
-        Diags.Report(diag::err_drv_invalid_omp_target) << A->getValue(i);
-      else
-        Opts.OMPTargetTriples.push_back(TT);
-    }
-  }
-
-  // Get OpenMP host file path if any and report if a non existent file is
-  // found
-  if (Arg *A = Args.getLastArg(options::OPT_fopenmp_host_ir_file_path)) {
-    Opts.OMPHostIRFile = A->getValue();
-    if (!llvm::sys::fs::exists(Opts.OMPHostIRFile))
-      Diags.Report(diag::err_drv_omp_host_ir_file_not_found)
-          << Opts.OMPHostIRFile;
-  }
-
-  // Set CUDA mode for OpenMP target NVPTX if specified in options
-  Opts.OpenMPCUDAMode = Opts.OpenMPIsDevice && T.isNVPTX() &&
-                        Args.hasArg(options::OPT_fopenmp_cuda_mode);
-
-  // Set CUDA mode for OpenMP target NVPTX if specified in options
-  Opts.OpenMPCUDAForceFullRuntime =
-      Opts.OpenMPIsDevice && T.isNVPTX() &&
-      Args.hasArg(options::OPT_fopenmp_cuda_force_full_runtime);
-
   // Record whether the __DEPRECATED define was requested.
   Opts.Deprecated = Args.hasFlag(OPT_fdeprecated_macro,
                                  OPT_fno_deprecated_macro,
@@ -3038,10 +2942,6 @@ bool CompilerInvocation::CreateFromArgs(CompilerInvocation &Res,
     if (LangOpts.CUDAIsDevice)
       Res.getTargetOpts().HostTriple = Res.getFrontendOpts().AuxTriple;
   }
-
-  // Set the triple of the host for OpenMP device compile.
-  if (LangOpts.OpenMPIsDevice)
-    Res.getTargetOpts().HostTriple = Res.getFrontendOpts().AuxTriple;
 
   // FIXME: Override value name discarding when asan or msan is used because the
   // backend passes depend on the name of the alloca in order to print out

@@ -16,7 +16,6 @@
 #include "CGCleanup.h"
 #include "CGDebugInfo.h"
 #include "CGOpenCLRuntime.h"
-#include "CGOpenMPRuntime.h"
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
 #include "ConstantEmitter.h"
@@ -25,7 +24,6 @@
 #include "clang/AST/CharUnits.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclObjC.h"
-#include "clang/AST/DeclOpenMP.h"
 #include "clang/Basic/CodeGenOptions.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Basic/TargetInfo.h"
@@ -103,9 +101,6 @@ void CodeGenFunction::EmitDecl(const Decl &D) {
   case Decl::StaticAssert: // static_assert(X, ""); [C++0x]
   case Decl::Label:        // __label__ x;
   case Decl::Import:
-  case Decl::OMPThreadPrivate:
-  case Decl::OMPCapturedExpr:
-  case Decl::OMPRequires:
   case Decl::Empty:
     // None of these decls require codegen support.
     return;
@@ -138,9 +133,6 @@ void CodeGenFunction::EmitDecl(const Decl &D) {
           EmitVarDecl(*HD);
     return;
   }
-
-  case Decl::OMPDeclareReduction:
-    return CGM.EmitOMPDeclareReduction(cast<OMPDeclareReductionDecl>(&D), this);
 
   case Decl::Typedef:      // typedef int X;
   case Decl::TypeAlias: {  // using X = int; [C++0x]
@@ -290,8 +282,6 @@ llvm::Constant *CodeGenModule::getOrCreateStaticVarDecl(
     assert(isa<ObjCMethodDecl>(DC) && "unexpected parent code decl");
   }
   if (GD.getDecl()) {
-    // Disable emission of the parent function for the OpenMP device codegen.
-    CGOpenMPRuntime::DisableAutoDeclareTargetRAII NoDeclTarget(*this);
     (void)GetAddrOfGlobal(GD);
   }
 
@@ -1360,15 +1350,8 @@ CodeGenFunction::EmitAutoVarAlloca(const VarDecl &D) {
     // A normal fixed sized variable becomes an alloca in the entry block,
     // unless:
     // - it's an NRVO variable.
-    // - we are compiling OpenMP and it's an OpenMP local variable.
 
-    Address OpenMPLocalAddr =
-        getLangOpts().OpenMP
-            ? CGM.getOpenMPRuntime().getAddressOfLocalVariable(*this, &D)
-            : Address::invalid();
-    if (getLangOpts().OpenMP && OpenMPLocalAddr.isValid()) {
-      address = OpenMPLocalAddr;
-    } else if (NRVO) {
+    if (NRVO) {
       // The named return value optimization: allocate this variable in the
       // return slot, so that we can elide the copy when returning this
       // variable (C++0x [class.copy]p34).
@@ -2307,18 +2290,9 @@ void CodeGenFunction::EmitParmDecl(const VarDecl &D, ParamValue Arg,
       }
     }
   } else {
-    // Check if the parameter address is controlled by OpenMP runtime.
-    Address OpenMPLocalAddr =
-        getLangOpts().OpenMP
-            ? CGM.getOpenMPRuntime().getAddressOfLocalVariable(*this, &D)
-            : Address::invalid();
-    if (getLangOpts().OpenMP && OpenMPLocalAddr.isValid()) {
-      DeclPtr = OpenMPLocalAddr;
-    } else {
-      // Otherwise, create a temporary to hold the value.
-      DeclPtr = CreateMemTemp(Ty, getContext().getDeclAlign(&D),
-                              D.getName() + ".addr");
-    }
+    // create a temporary to hold the value.
+    DeclPtr = CreateMemTemp(Ty, getContext().getDeclAlign(&D),
+                            D.getName() + ".addr");
     DoStore = true;
   }
 
@@ -2412,15 +2386,4 @@ void CodeGenFunction::EmitParmDecl(const VarDecl &D, ParamValue Arg,
                             Builder.CreateIsNotNull(Arg.getAnyValue()));
     }
   }
-}
-
-void CodeGenModule::EmitOMPDeclareReduction(const OMPDeclareReductionDecl *D,
-                                            CodeGenFunction *CGF) {
-  if (!LangOpts.OpenMP || (!LangOpts.EmitAllDecls && !D->isUsed()))
-    return;
-  getOpenMPRuntime().emitUserDefinedReduction(CGF, D);
-}
-
-void CodeGenModule::EmitOMPRequiresDecl(const OMPRequiresDecl *D) {
-  getOpenMPRuntime().checkArchForUnifiedAddressing(*this, D);
 }

@@ -556,9 +556,6 @@ KEYWORD(vec_step                    , KEYOPENCLC | KEYALTIVEC | KEYZVECTOR)
 #define GENERIC_IMAGE_TYPE(ImgType, Id) KEYWORD(ImgType##_t, KEYOPENCLC)
 #include "clang/Basic/OpenCLImageTypes.def"
 
-// OpenMP Type Traits
-KEYWORD(__builtin_omp_required_simd_align, KEYALL)
-
 KEYWORD(pipe                        , KEYOPENCLC)
 
 // Borland Extensions.
@@ -801,12 +798,6 @@ ANNOTATION(pragma_ms_pragma)
 // The lexer produces these so that they only take effect when the parser
 // handles them.
 ANNOTATION(pragma_opencl_extension)
-
-// Annotations for OpenMP pragma directives - #pragma omp ...
-// The lexer produces these so that they only take effect when the parser
-// handles #pragma omp ... directives.
-ANNOTATION(pragma_openmp)
-ANNOTATION(pragma_openmp_end)
 
 // Annotations for loop pragma directives #pragma clang loop ...
 // The lexer produces these so that they only take effect when the parser

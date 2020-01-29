@@ -1183,9 +1183,6 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
   case tok::kw_sizeof:     // unary-expression: 'sizeof' unary-expression
                            // unary-expression: 'sizeof' '(' type-name ')'
   case tok::kw_vec_step:   // unary-expression: OpenCL 'vec_step' expression
-  // unary-expression: '__builtin_omp_required_simd_align' '(' type-name ')'
-  case tok::kw___builtin_omp_required_simd_align:
-    return ParseUnaryExprOrTypeTraitExpression();
   case tok::ampamp: {      // unary-expression: '&&' identifier
     SourceLocation AmpAmpLoc = ConsumeToken();
     if (Tok.isNot(tok::identifier))
@@ -1549,19 +1546,6 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
       if (getLangOpts().CPlusPlus11 && Tok.is(tok::l_brace)) {
         Diag(Tok, diag::warn_cxx98_compat_generalized_initializer_lists);
         Idx = ParseBraceInitializer();
-      } else if (getLangOpts().OpenMP) {
-        ColonProtectionRAIIObject RAII(*this);
-        // Parse [: or [ expr or [ expr :
-        if (!Tok.is(tok::colon)) {
-          // [ expr
-          Idx = ParseExpression();
-        }
-        if (Tok.is(tok::colon)) {
-          // Consume ':'
-          ColonLoc = ConsumeToken();
-          if (Tok.isNot(tok::r_square))
-            Length = ParseExpression();
-        }
       } else
         Idx = ParseExpression();
 
@@ -1570,13 +1554,8 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
       ExprResult OrigLHS = LHS;
       if (!LHS.isInvalid() && !Idx.isInvalid() && !Length.isInvalid() &&
           Tok.is(tok::r_square)) {
-        if (ColonLoc.isValid()) {
-          LHS = Actions.ActOnOMPArraySectionExpr(LHS.get(), Loc, Idx.get(),
-                                                 ColonLoc, Length.get(), RLoc);
-        } else {
-          LHS = Actions.ActOnArraySubscriptExpr(getCurScope(), LHS.get(), Loc,
+        LHS = Actions.ActOnArraySubscriptExpr(getCurScope(), LHS.get(), Loc,
                                                 Idx.get(), RLoc);
-        }
       } else {
         LHS = ExprError();
       }
@@ -1869,8 +1848,7 @@ Parser::ParseExprAfterUnaryExprOrTypeTrait(const Token &OpTok,
                                            SourceRange &CastRange) {
 
   assert(OpTok.isOneOf(tok::kw_typeof, tok::kw_sizeof, tok::kw___alignof,
-                       tok::kw_alignof, tok::kw__Alignof, tok::kw_vec_step,
-                       tok::kw___builtin_omp_required_simd_align) &&
+                       tok::kw_alignof, tok::kw__Alignof, tok::kw_vec_step) &&
          "Not a typeof/sizeof/alignof/vec_step expression!");
 
   ExprResult Operand;
@@ -1955,8 +1933,7 @@ Parser::ParseExprAfterUnaryExprOrTypeTrait(const Token &OpTok,
 /// \endverbatim
 ExprResult Parser::ParseUnaryExprOrTypeTraitExpression() {
   assert(Tok.isOneOf(tok::kw_sizeof, tok::kw___alignof, tok::kw_alignof,
-                     tok::kw__Alignof, tok::kw_vec_step,
-                     tok::kw___builtin_omp_required_simd_align) &&
+                     tok::kw__Alignof, tok::kw_vec_step) &&
          "Not a sizeof/alignof/vec_step expression!");
   Token OpTok = Tok;
   ConsumeToken();
@@ -2030,8 +2007,6 @@ ExprResult Parser::ParseUnaryExprOrTypeTraitExpression() {
     ExprKind = UETT_PreferredAlignOf;
   else if (OpTok.is(tok::kw_vec_step))
     ExprKind = UETT_VecStep;
-  else if (OpTok.is(tok::kw___builtin_omp_required_simd_align))
-    ExprKind = UETT_OpenMPRequiredSimdAlign;
 
   if (isCastExpr)
     return Actions.ActOnUnaryExprOrTypeTraitExpr(OpTok.getLocation(),

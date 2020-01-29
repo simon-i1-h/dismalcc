@@ -1137,47 +1137,6 @@ def err_openclcxx_virtual_function : Error<
 def err_openclcxx_reserved : Error<
   "'%0' is a reserved keyword in OpenCL C++">;
 
-// OpenMP support.
-def warn_pragma_omp_ignored : Warning<
-  "unexpected '#pragma omp ...' in program">, InGroup<SourceUsesOpenMP>, DefaultIgnore;
-def warn_omp_extra_tokens_at_eol : Warning<
-  "extra tokens at the end of '#pragma omp %0' are ignored">,
-  InGroup<ExtraTokens>;
-def warn_pragma_expected_colon_r_paren : Warning<
-  "missing ':' or ')' after %0 - ignoring">, InGroup<IgnoredPragmas>;
-def err_omp_unknown_directive : Error<
-  "expected an OpenMP directive">;
-def err_omp_unexpected_directive : Error<
-  "unexpected OpenMP directive %select{|'#pragma omp %1'}0">;
-def err_omp_expected_punc : Error<
-  "expected ',' or ')' in '%0' %select{clause|directive}1">;
-def err_omp_unexpected_clause : Error<
-  "unexpected OpenMP clause '%0' in directive '#pragma omp %1'">;
-def err_omp_immediate_directive : Error<
-  "'#pragma omp %0' %select{|with '%2' clause }1cannot be an immediate substatement">;
-def err_omp_expected_identifier_for_critical : Error<
-  "expected identifier specifying the name of the 'omp critical' directive">;
-def err_omp_expected_reduction_identifier : Error<
-  "expected identifier or one of the following operators: '+', '-', '*', '&', '|', '^', '&&', or '||'">;
-def err_omp_decl_in_declare_simd : Error<
-  "function declaration is expected after 'declare simd' directive">;
-def err_omp_unknown_map_type : Error<
-  "incorrect map type, expected one of 'to', 'from', 'tofrom', 'alloc', 'release', or 'delete'">;
-def err_omp_unknown_map_type_modifier : Error<
-  "incorrect map type modifier, expected 'always' or 'close'">;
-def err_omp_map_type_missing : Error<
-  "missing map type">;
-def err_omp_map_type_modifier_missing : Error<
-  "missing map type modifier">;
-def err_omp_declare_simd_inbranch_notinbranch : Error<
-  "unexpected '%0' clause, '%1' is specified already">;
-def err_expected_end_declare_target : Error<
-  "expected '#pragma omp end declare target'">;
-def err_omp_declare_target_unexpected_clause: Error<
-  "unexpected '%0' clause, only 'to' or 'link' clauses expected">;
-def err_omp_expected_clause: Error<
-  "expected at least one clause on '#pragma omp %0' directive">;
-
 // Pragma loop support.
 def err_pragma_loop_missing_argument : Error<
   "missing argument; expected %select{an integer value|"

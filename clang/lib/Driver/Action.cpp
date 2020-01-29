@@ -95,8 +95,6 @@ std::string Action::getOffloadingKindPrefix() const {
     break;
   case OFK_Cuda:
     return "device-cuda";
-  case OFK_OpenMP:
-    return "device-openmp";
   case OFK_HIP:
     return "device-hip";
 
@@ -114,8 +112,6 @@ std::string Action::getOffloadingKindPrefix() const {
     Res += "-cuda";
   if (ActiveOffloadKindMask & OFK_HIP)
     Res += "-hip";
-  if (ActiveOffloadKindMask & OFK_OpenMP)
-    Res += "-openmp";
 
   // TODO: Add other programming models here.
 
@@ -148,8 +144,6 @@ StringRef Action::GetOffloadKindName(OffloadKind Kind) {
     return "host";
   case OFK_Cuda:
     return "cuda";
-  case OFK_OpenMP:
-    return "openmp";
   case OFK_HIP:
     return "hip";
 

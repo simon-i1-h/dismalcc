@@ -175,8 +175,7 @@ public:
     /// lookup within the scope of the declaring function.
     IDNS_LocalExtern         = 0x0800,
 
-    /// This declaration is an OpenMP user defined reduction construction.
-    IDNS_OMPReduction        = 0x1000
+    // XXX 0x1000: reserved by OpenMP
   };
 
   /// ObjCDeclQualifier - 'Qualifiers' written next to the return and
@@ -1251,7 +1250,6 @@ public:
 ///   ExternCContext
 ///   NamespaceDecl
 ///   TagDecl
-///   OMPDeclareReductionDecl
 ///   FunctionDecl
 ///   ObjCMethodDecl
 ///   ObjCContainerDecl
@@ -1440,22 +1438,6 @@ class DeclContext {
 
   /// Number of non-inherited bits in RecordDeclBitfields.
   enum { NumRecordDeclBits = 11 };
-
-  /// Stores the bits used by OMPDeclareReductionDecl.
-  /// If modified NumOMPDeclareReductionDeclBits and the accessor
-  /// methods in OMPDeclareReductionDecl should be updated appropriately.
-  class OMPDeclareReductionDeclBitfields {
-    friend class OMPDeclareReductionDecl;
-    /// For the bits in DeclContextBitfields
-    uint64_t : NumDeclContextBits;
-
-    /// Kind of initializer,
-    /// function call or omp_priv<init_expr> initializtion.
-    uint64_t InitializerKind : 2;
-  };
-
-  /// Number of non-inherited bits in OMPDeclareReductionDeclBitfields.
-  enum { NumOMPDeclareReductionDeclBits = 2 };
 
   /// Stores the bits used by FunctionDecl.
   /// If modified NumFunctionDeclBits and the accessor
@@ -1689,7 +1671,6 @@ protected:
     TagDeclBitfields TagDeclBits;
     EnumDeclBitfields EnumDeclBits;
     RecordDeclBitfields RecordDeclBits;
-    OMPDeclareReductionDeclBitfields OMPDeclareReductionDeclBits;
     FunctionDeclBitfields FunctionDeclBits;
     CXXConstructorDeclBitfields CXXConstructorDeclBits;
     ObjCMethodDeclBitfields ObjCMethodDeclBits;
@@ -1705,8 +1686,6 @@ protected:
                   "EnumDeclBitfields is larger than 8 bytes!");
     static_assert(sizeof(RecordDeclBitfields) <= 8,
                   "RecordDeclBitfields is larger than 8 bytes!");
-    static_assert(sizeof(OMPDeclareReductionDeclBitfields) <= 8,
-                  "OMPDeclareReductionDeclBitfields is larger than 8 bytes!");
     static_assert(sizeof(FunctionDeclBitfields) <= 8,
                   "FunctionDeclBitfields is larger than 8 bytes!");
     static_assert(sizeof(CXXConstructorDeclBitfields) <= 8,

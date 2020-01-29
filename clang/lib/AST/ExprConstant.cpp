@@ -8598,9 +8598,6 @@ bool IntExprEvaluator::VisitBuiltinCallExpr(const CallExpr *E,
     return BuiltinOp == Builtin::BI__atomic_always_lock_free ?
         Success(0, E) : Error(E);
   }
-  case Builtin::BIomp_is_initial_device:
-    // We can decide statically which value the runtime would return if called.
-    return Success(Info.getLangOpts().OpenMPIsDevice ? 0 : 1, E);
   case Builtin::BI__builtin_add_overflow:
   case Builtin::BI__builtin_sub_overflow:
   case Builtin::BI__builtin_mul_overflow:
@@ -9576,13 +9573,6 @@ bool IntExprEvaluator::VisitUnaryExprOrTypeTraitExpr(
       return false;
     return Success(Sizeof, E);
   }
-  case UETT_OpenMPRequiredSimdAlign:
-    assert(E->isArgumentType());
-    return Success(
-        Info.Ctx.toCharUnitsFromBits(
-                    Info.Ctx.getOpenMPDefaultSimdAlign(E->getArgumentType()))
-            .getQuantity(),
-        E);
   }
 
   llvm_unreachable("unknown expr/type trait");
@@ -11157,7 +11147,6 @@ static ICEDiag CheckICE(const Expr* E, const ASTContext &Ctx) {
   case Expr::ImaginaryLiteralClass:
   case Expr::StringLiteralClass:
   case Expr::ArraySubscriptExprClass:
-  case Expr::OMPArraySectionExprClass:
   case Expr::MemberExprClass:
   case Expr::CompoundAssignOperatorClass:
   case Expr::CompoundLiteralExprClass:

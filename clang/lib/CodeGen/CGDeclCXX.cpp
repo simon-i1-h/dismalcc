@@ -14,7 +14,6 @@
 #include "CodeGenFunction.h"
 #include "CGCXXABI.h"
 #include "CGObjCRuntime.h"
-#include "CGOpenMPRuntime.h"
 #include "clang/Basic/CodeGenOptions.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/IR/Intrinsics.h"
@@ -192,12 +191,6 @@ void CodeGenFunction::EmitCXXGlobalVarDeclInit(const VarDecl &D,
   ConstantAddress DeclAddr(DeclPtr, getContext().getDeclAlign(&D));
 
   if (!T->isReferenceType()) {
-    if (getLangOpts().OpenMP && !getLangOpts().OpenMPSimd &&
-        D.hasAttr<OMPThreadPrivateDeclAttr>()) {
-      (void)CGM.getOpenMPRuntime().emitThreadPrivateVarDefinition(
-          &D, DeclAddr, D.getAttr<OMPThreadPrivateDeclAttr>()->getLocation(),
-          PerformInit, this);
-    }
     if (PerformInit)
       EmitDeclInit(*this, D, DeclAddr);
     if (CGM.isTypeConstant(D.getType(), true))
@@ -426,10 +419,6 @@ CodeGenModule::EmitCXXGlobalVarDeclInitFunc(const VarDecl *D,
   if (getLangOpts().CUDA && getLangOpts().CUDAIsDevice &&
       (D->hasAttr<CUDADeviceAttr>() || D->hasAttr<CUDAConstantAttr>() ||
        D->hasAttr<CUDASharedAttr>()))
-    return;
-
-  if (getLangOpts().OpenMP &&
-      getOpenMPRuntime().emitDeclareTargetVarDefinition(D, Addr, PerformInit))
     return;
 
   // Check if we've already initialized this decl.

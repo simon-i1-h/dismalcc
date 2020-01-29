@@ -104,16 +104,7 @@ public:
     /// This is the scope for a function-level C++ try or catch scope.
     FnTryCatchScope = 0x4000,
 
-    /// This is the scope of OpenMP executable directive.
-    OpenMPDirectiveScope = 0x8000,
-
-    /// This is the scope of some OpenMP loop directive.
-    OpenMPLoopDirectiveScope = 0x10000,
-
-    /// This is the scope of some OpenMP simd directive.
-    /// For example, it is used for 'omp simd', 'omp for simd'.
-    /// This flag is propagated to children scopes.
-    OpenMPSimdDirectiveScope = 0x20000,
+    // 0x8000, 0x10000, 0x20000: reserved by OpenMP
 
     /// This scope corresponds to an enum.
     EnumScope = 0x40000,
@@ -400,35 +391,6 @@ public:
         return false;
     }
     return false;
-  }
-
-  /// Determines whether this scope is the OpenMP directive scope
-  bool isOpenMPDirectiveScope() const {
-    return (getFlags() & Scope::OpenMPDirectiveScope);
-  }
-
-  /// Determine whether this scope is some OpenMP loop directive scope
-  /// (for example, 'omp for', 'omp simd').
-  bool isOpenMPLoopDirectiveScope() const {
-    if (getFlags() & Scope::OpenMPLoopDirectiveScope) {
-      assert(isOpenMPDirectiveScope() &&
-             "OpenMP loop directive scope is not a directive scope");
-      return true;
-    }
-    return false;
-  }
-
-  /// Determine whether this scope is (or is nested into) some OpenMP
-  /// loop simd directive scope (for example, 'omp simd', 'omp for simd').
-  bool isOpenMPSimdDirectiveScope() const {
-    return getFlags() & Scope::OpenMPSimdDirectiveScope;
-  }
-
-  /// Determine whether this scope is a loop having OpenMP loop
-  /// directive attached.
-  bool isOpenMPLoopScope() const {
-    const Scope *P = getParent();
-    return P && P->isOpenMPLoopDirectiveScope();
   }
 
   /// Determine whether this scope is a C++ 'try' block.

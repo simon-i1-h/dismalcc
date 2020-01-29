@@ -276,9 +276,6 @@ bool Parser::SkipUntil(ArrayRef<tok::TokenKind> Toks, SkipUntilFlags Flags) {
       // Ran out of tokens.
       return false;
 
-    case tok::annot_pragma_openmp:
-    case tok::annot_pragma_openmp_end:
-      // Stop before an OpenMP pragma boundary.
     case tok::annot_module_begin:
     case tok::annot_module_end:
     case tok::annot_module_include:
@@ -683,10 +680,6 @@ Parser::ParseExternalDeclaration(ParsedAttributesWithRange &attrs,
   case tok::annot_pragma_opencl_extension:
     HandlePragmaOpenCLExtension();
     return nullptr;
-  case tok::annot_pragma_openmp: {
-    AccessSpecifier AS = AS_none;
-    return ParseOpenMPDeclarativeDirectiveWithExtDecl(AS, attrs);
-  }
   case tok::annot_pragma_ms_pointers_to_members:
     HandlePragmaMSPointersToMembers();
     return nullptr;
@@ -914,7 +907,6 @@ bool Parser::isStartOfFunctionDefinition(const ParsingDeclarator &Declarator) {
 ///       declaration: [C99 6.7]
 ///         declaration-specifiers init-declarator-list[opt] ';'
 /// [!C99]  init-declarator-list ';'                   [TODO: warn in c99 mode]
-/// [OMP]   threadprivate-directive                              [TODO]
 ///
 Parser::DeclGroupPtrTy
 Parser::ParseDeclOrFunctionDefInternal(ParsedAttributesWithRange &attrs,

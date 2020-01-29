@@ -121,7 +121,8 @@ public:
   bool HasDroppedStmt : 1;
 
   /// True if current scope is for OpenMP declare reduction combiner.
-  bool HasOMPDeclareReductionCombiner : 1;
+  /// XXX deprecated
+  bool HasOMPDeclareReductionCombinerDeprecated : 1;
 
   /// Whether there is a fallthrough statement in this function.
   bool HasFallthroughStmt : 1;
@@ -365,7 +366,7 @@ public:
   FunctionScopeInfo(DiagnosticsEngine &Diag)
       : Kind(SK_Function), HasBranchProtectedScope(false),
         HasBranchIntoScope(false), HasIndirectGoto(false),
-        HasDroppedStmt(false), HasOMPDeclareReductionCombiner(false),
+        HasDroppedStmt(false), HasOMPDeclareReductionCombinerDeprecated(false),
         HasFallthroughStmt(false), HasPotentialAvailabilityViolations(false),
         ObjCShouldCallSuper(false), ObjCIsDesignatedInit(false),
         ObjCWarnForNoDesignatedInitChain(false), ObjCIsSecondaryInit(false),
@@ -407,10 +408,6 @@ public:
 
   void setHasDroppedStmt() {
     HasDroppedStmt = true;
-  }
-
-  void setHasOMPDeclareReductionCombiner() {
-    HasOMPDeclareReductionCombiner = true;
   }
 
   void setHasFallthroughStmt() {
@@ -751,14 +748,12 @@ public:
   /// The kind of captured region.
   unsigned short CapRegionKind;
 
-  unsigned short OpenMPLevel;
-
   CapturedRegionScopeInfo(DiagnosticsEngine &Diag, Scope *S, CapturedDecl *CD,
                           RecordDecl *RD, ImplicitParamDecl *Context,
-                          CapturedRegionKind K, unsigned OpenMPLevel)
+                          CapturedRegionKind K)
       : CapturingScopeInfo(Diag, ImpCap_CapturedRegion),
         TheCapturedDecl(CD), TheRecordDecl(RD), TheScope(S),
-        ContextParam(Context), CapRegionKind(K), OpenMPLevel(OpenMPLevel) {
+        ContextParam(Context), CapRegionKind(K) {
     Kind = SK_CapturedRegion;
   }
 
@@ -771,8 +766,6 @@ public:
       return "default captured statement";
     case CR_ObjCAtFinally:
       return "Objective-C @finally statement";
-    case CR_OpenMP:
-      return "OpenMP region";
     }
     llvm_unreachable("Invalid captured region kind!");
   }

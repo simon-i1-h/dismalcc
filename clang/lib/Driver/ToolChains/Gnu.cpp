@@ -502,15 +502,6 @@ void tools::gnutools::Linker::ConstructJob(Compilation &C, const JobAction &JA,
       bool WantPthread = Args.hasArg(options::OPT_pthread) ||
                          Args.hasArg(options::OPT_pthreads);
 
-      // FIXME: Only pass GompNeedsRT = true for platforms with libgomp that
-      // require librt. Most modern Linux platforms do, but some may not.
-      if (addOpenMPRuntime(CmdArgs, ToolChain, Args,
-                           JA.isHostOffloading(Action::OFK_OpenMP),
-                           /* GompNeedsRT= */ true))
-        // OpenMP runtimes implies pthreads when using the GNU toolchain.
-        // FIXME: Does this really make sense for all GNU toolchains?
-        WantPthread = true;
-
       AddRunTimeLibs(ToolChain, D, CmdArgs, Args);
 
       if (WantPthread && !isAndroid)
@@ -553,9 +544,6 @@ void tools::gnutools::Linker::ConstructJob(Compilation &C, const JobAction &JA,
         CmdArgs.push_back(Args.MakeArgString(ToolChain.GetFilePath("crtn.o")));
     }
   }
-
-  // Add OpenMP offloading linker script args if required.
-  AddOpenMPLinkerScript(getToolChain(), C, Output, Inputs, Args, CmdArgs, JA);
 
   // Add HIP offloading linker script args if required.
   AddHIPLinkerScript(getToolChain(), C, Output, Inputs, Args, CmdArgs, JA,
@@ -2588,43 +2576,6 @@ bool Generic_GCC::addLibStdCXXIncludePaths(
 llvm::opt::DerivedArgList *
 Generic_GCC::TranslateArgs(const llvm::opt::DerivedArgList &Args, StringRef,
                            Action::OffloadKind DeviceOffloadKind) const {
-
-  // If this tool chain is used for an OpenMP offloading device we have to make
-  // sure we always generate a shared library regardless of the commands the
-  // user passed to the host. This is required because the runtime library
-  // is required to load the device image dynamically at run time.
-  if (DeviceOffloadKind == Action::OFK_OpenMP) {
-    DerivedArgList *DAL = new DerivedArgList(Args.getBaseArgs());
-    const OptTable &Opts = getDriver().getOpts();
-
-    // Request the shared library. Given that these options are decided
-    // implicitly, they do not refer to any base argument.
-    DAL->AddFlagArg(/*BaseArg=*/nullptr, Opts.getOption(options::OPT_shared));
-    DAL->AddFlagArg(/*BaseArg=*/nullptr, Opts.getOption(options::OPT_fPIC));
-
-    // Filter all the arguments we don't care passing to the offloading
-    // toolchain as they can mess up with the creation of a shared library.
-    for (auto *A : Args) {
-      switch ((options::ID)A->getOption().getID()) {
-      default:
-        DAL->append(A);
-        break;
-      case options::OPT_shared:
-      case options::OPT_dynamic:
-      case options::OPT_static:
-      case options::OPT_fPIC:
-      case options::OPT_fno_PIC:
-      case options::OPT_fpic:
-      case options::OPT_fno_pic:
-      case options::OPT_fPIE:
-      case options::OPT_fno_PIE:
-      case options::OPT_fpie:
-      case options::OPT_fno_pie:
-        break;
-      }
-    }
-    return DAL;
-  }
   return nullptr;
 }
 

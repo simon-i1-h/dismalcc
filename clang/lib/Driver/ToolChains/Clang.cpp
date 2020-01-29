@@ -138,13 +138,6 @@ forAllAssociatedToolChains(Compilation &C, const JobAction &JA,
   else if (JA.isDeviceOffloading(Action::OFK_HIP))
     Work(*C.getSingleOffloadToolChain<Action::OFK_Host>());
 
-  if (JA.isHostOffloading(Action::OFK_OpenMP)) {
-    auto TCs = C.getOffloadToolChains<Action::OFK_OpenMP>();
-    for (auto II = TCs.first, IE = TCs.second; II != IE; ++II)
-      Work(*II->second);
-  } else if (JA.isDeviceOffloading(Action::OFK_OpenMP))
-    Work(*C.getSingleOffloadToolChain<Action::OFK_Host>());
-
   //
   // TODO: Add support for other offloading programming models here.
   //
@@ -3315,13 +3308,11 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   // Check number of inputs for sanity. We need at least one input.
   assert(Inputs.size() >= 1 && "Must have at least one input.");
   // CUDA/HIP compilation may have multiple inputs (source file + results of
-  // device-side compilations). OpenMP device jobs also take the host IR as a
-  // second input. Module precompilation accepts a list of header files to
-  // include as part of the module. All other jobs are expected to have exactly
-  // one input.
+  // device-side compilations). Module precompilation accepts a list of header
+  // files to include as part of the module. All other jobs are expected to
+  // have exactly one input.
   bool IsCuda = JA.isOffloading(Action::OFK_Cuda);
   bool IsHIP = JA.isOffloading(Action::OFK_HIP);
-  bool IsOpenMPDevice = JA.isDeviceOffloading(Action::OFK_OpenMP);
   bool IsHeaderModulePrecompile = isa<HeaderModulePrecompileJobAction>(JA);
 
   // A header module compilation doesn't have a main input file, so invent a
@@ -3337,7 +3328,6 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
 
   InputInfoList ModuleHeaderInputs;
   const InputInfo *CudaDeviceInput = nullptr;
-  const InputInfo *OpenMPDeviceInput = nullptr;
   for (const InputInfo &I : Inputs) {
     if (&I == &Input) {
       // This is the primary input.
@@ -3352,8 +3342,6 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
       ModuleHeaderInputs.push_back(I);
     } else if ((IsCuda || IsHIP) && !CudaDeviceInput) {
       CudaDeviceInput = &I;
-    } else if (IsOpenMPDevice && !OpenMPDeviceInput) {
-      OpenMPDeviceInput = &I;
     } else {
       llvm_unreachable("unexpectedly given multiple inputs");
     }
@@ -3408,16 +3396,6 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
               ->getTriple()
               .normalize();
 
-    CmdArgs.push_back("-aux-triple");
-    CmdArgs.push_back(Args.MakeArgString(NormalizedTriple));
-  }
-
-  if (IsOpenMPDevice) {
-    // We have to pass the triple of the host if compiling for an OpenMP device.
-    std::string NormalizedTriple =
-        C.getSingleOffloadToolChain<Action::OFK_Host>()
-            ->getTriple()
-            .normalize();
     CmdArgs.push_back("-aux-triple");
     CmdArgs.push_back(Args.MakeArgString(NormalizedTriple));
   }
@@ -4334,62 +4312,6 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   Args.AddLastArg(CmdArgs, options::OPT_fdiagnostics_show_template_tree);
   Args.AddLastArg(CmdArgs, options::OPT_fno_elide_type);
 
-  // Forward flags for OpenMP. We don't do this if the current action is an
-  // device offloading action other than OpenMP.
-  if (Args.hasFlag(options::OPT_fopenmp, options::OPT_fopenmp_EQ,
-                   options::OPT_fno_openmp, false) &&
-      (JA.isDeviceOffloading(Action::OFK_None) ||
-       JA.isDeviceOffloading(Action::OFK_OpenMP))) {
-    switch (D.getOpenMPRuntime(Args)) {
-    case Driver::OMPRT_OMP:
-    case Driver::OMPRT_IOMP5:
-      // Clang can generate useful OpenMP code for these two runtime libraries.
-      CmdArgs.push_back("-fopenmp");
-
-      // If no option regarding the use of TLS in OpenMP codegeneration is
-      // given, decide a default based on the target. Otherwise rely on the
-      // options and pass the right information to the frontend.
-      if (!Args.hasFlag(options::OPT_fopenmp_use_tls,
-                        options::OPT_fnoopenmp_use_tls, /*Default=*/true))
-        CmdArgs.push_back("-fnoopenmp-use-tls");
-      Args.AddLastArg(CmdArgs, options::OPT_fopenmp_simd,
-                      options::OPT_fno_openmp_simd);
-      Args.AddAllArgs(CmdArgs, options::OPT_fopenmp_version_EQ);
-      Args.AddAllArgs(CmdArgs, options::OPT_fopenmp_cuda_number_of_sm_EQ);
-      Args.AddAllArgs(CmdArgs, options::OPT_fopenmp_cuda_blocks_per_sm_EQ);
-      if (Args.hasFlag(options::OPT_fopenmp_optimistic_collapse,
-                       options::OPT_fno_openmp_optimistic_collapse,
-                       /*Default=*/false))
-        CmdArgs.push_back("-fopenmp-optimistic-collapse");
-
-      // When in OpenMP offloading mode with NVPTX target, forward
-      // cuda-mode flag
-      if (Args.hasFlag(options::OPT_fopenmp_cuda_mode,
-                       options::OPT_fno_openmp_cuda_mode, /*Default=*/false))
-        CmdArgs.push_back("-fopenmp-cuda-mode");
-
-      // When in OpenMP offloading mode with NVPTX target, check if full runtime
-      // is required.
-      if (Args.hasFlag(options::OPT_fopenmp_cuda_force_full_runtime,
-                       options::OPT_fno_openmp_cuda_force_full_runtime,
-                       /*Default=*/false))
-        CmdArgs.push_back("-fopenmp-cuda-force-full-runtime");
-      break;
-    default:
-      // By default, if Clang doesn't know how to generate useful OpenMP code
-      // for a specific runtime library, we just don't pass the '-fopenmp' flag
-      // down to the actual compilation.
-      // FIXME: It would be better to have a mode which *only* omits IR
-      // generation based on the OpenMP support so that we get consistent
-      // semantic analysis, etc.
-      break;
-    }
-  } else {
-    Args.AddLastArg(CmdArgs, options::OPT_fopenmp_simd,
-                    options::OPT_fno_openmp_simd);
-    Args.AddAllArgs(CmdArgs, options::OPT_fopenmp_version_EQ);
-  }
-
   const SanitizerArgs &Sanitize = TC.getSanitizerArgs();
   Sanitize.addArgs(TC, Args, CmdArgs, InputType);
 
@@ -5104,38 +5026,6 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     if (Args.hasFlag(options::OPT_fcuda_short_ptr,
                      options::OPT_fno_cuda_short_ptr, false))
       CmdArgs.push_back("-fcuda-short-ptr");
-  }
-
-  // OpenMP offloading device jobs take the argument -fopenmp-host-ir-file-path
-  // to specify the result of the compile phase on the host, so the meaningful
-  // device declarations can be identified. Also, -fopenmp-is-device is passed
-  // along to tell the frontend that it is generating code for a device, so that
-  // only the relevant declarations are emitted.
-  if (IsOpenMPDevice) {
-    CmdArgs.push_back("-fopenmp-is-device");
-    if (OpenMPDeviceInput) {
-      CmdArgs.push_back("-fopenmp-host-ir-file-path");
-      CmdArgs.push_back(Args.MakeArgString(OpenMPDeviceInput->getFilename()));
-    }
-  }
-
-  // For all the host OpenMP offloading compile jobs we need to pass the targets
-  // information using -fopenmp-targets= option.
-  if (JA.isHostOffloading(Action::OFK_OpenMP)) {
-    SmallString<128> TargetInfo("-fopenmp-targets=");
-
-    Arg *Tgts = Args.getLastArg(options::OPT_fopenmp_targets_EQ);
-    assert(Tgts && Tgts->getNumValues() &&
-           "OpenMP offloading has to have targets specified.");
-    for (unsigned i = 0; i < Tgts->getNumValues(); ++i) {
-      if (i)
-        TargetInfo += ',';
-      // We need to get the string from the triple because it may be not exactly
-      // the same as the one we get directly from the arguments.
-      llvm::Triple T(Tgts->getValue(i));
-      TargetInfo += T.getTriple();
-    }
-    CmdArgs.push_back(Args.MakeArgString(TargetInfo.str()));
   }
 
   bool WholeProgramVTables =
@@ -5979,7 +5869,7 @@ void OffloadBundler::ConstructJob(Compilation &C, const JobAction &JA,
 
   // The bundling command looks like this:
   // clang-offload-bundler -type=bc
-  //   -targets=host-triple,openmp-triple1,openmp-triple2
+  //   -targets=host-triple
   //   -outputs=input_file
   //   -inputs=unbundle_file_host,unbundle_file_tgt1,unbundle_file_tgt2"
 
@@ -6062,7 +5952,7 @@ void OffloadBundler::ConstructJobMultipleOutputs(
 
   // The unbundling command looks like this:
   // clang-offload-bundler -type=bc
-  //   -targets=host-triple,openmp-triple1,openmp-triple2
+  //   -targets=host-triple
   //   -inputs=input_file
   //   -outputs=unbundle_file_host,unbundle_file_tgt1,unbundle_file_tgt2"
   //   -unbundle

@@ -836,9 +836,6 @@ Sema::ActOnDecompositionDeclarator(Scope *S, Declarator &D,
     CurContext->addHiddenDecl(New);
   }
 
-  if (isInOpenMPDeclareTargetContext())
-    checkDeclIsAllowedInOpenMPTarget(nullptr, New);
-
   return New;
 }
 
@@ -14997,15 +14994,6 @@ void Sema::MarkVTableUsed(SourceLocation Loc, CXXRecordDecl *Class,
   if (!Class->isDynamicClass() || Class->isDependentContext() ||
       CurContext->isDependentContext() || isUnevaluatedContext())
     return;
-  // Do not mark as used if compiling for the device outside of the target
-  // region.
-  if (LangOpts.OpenMP && LangOpts.OpenMPIsDevice &&
-      !isInOpenMPDeclareTargetContext() &&
-      !isInOpenMPTargetExecutionDirective()) {
-    if (!DefinitionRequired)
-      MarkVirtualMembersReferenced(Loc, Class);
-    return;
-  }
 
   // Try to insert this class into the map.
   LoadExternalVTableUses();

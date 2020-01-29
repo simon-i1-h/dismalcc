@@ -15,7 +15,6 @@
 #include "clang/AST/DeclObjC.h"
 #include "clang/AST/ExprCXX.h"
 #include "clang/AST/ExprObjC.h"
-#include "clang/AST/ExprOpenMP.h"
 #include "clang/AST/TypeLoc.h"
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Sema/Designator.h"
@@ -6629,12 +6628,6 @@ static void visitLocalsRetainedByReferenceBinding(IndirectLocalPath &Path,
     const UnaryOperator *U = cast<UnaryOperator>(Init);
     if (U->getOpcode() == UO_Deref)
       visitLocalsRetainedByInitializer(Path, U->getSubExpr(), Visit, true);
-    break;
-  }
-
-  case Stmt::OMPArraySectionExprClass: {
-    visitLocalsRetainedByInitializer(
-        Path, cast<OMPArraySectionExpr>(Init)->getBase(), Visit, true);
     break;
   }
 

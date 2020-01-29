@@ -2792,8 +2792,6 @@ StringRef BuiltinType::getName(const PrintingPolicy &Policy) const {
     return "queue_t";
   case OCLReserveID:
     return "reserve_id_t";
-  case OMPArraySection:
-    return "<OpenMP array section type>";
 #define EXT_OPAQUE_TYPE(ExtType, Id, Ext) \
   case Id: \
     return #ExtType;
@@ -3785,7 +3783,6 @@ bool Type::canHaveNullability(bool ResultIfUnknown) const {
     case BuiltinType::OCLReserveID:
     case BuiltinType::BuiltinFn:
     case BuiltinType::NullPtr:
-    case BuiltinType::OMPArraySection:
       return false;
     }
     llvm_unreachable("unknown builtin type");

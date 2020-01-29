@@ -13,7 +13,6 @@
 
 #include "clang/AST/TextNodeDumper.h"
 #include "clang/AST/DeclFriend.h"
-#include "clang/AST/DeclOpenMP.h"
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/LocInfoType.h"
 
@@ -282,24 +281,6 @@ void TextNodeDumper::Visit(const BlockDecl::Capture &C) {
     OS << ' ';
     dumpBareDeclRef(C.getVariable());
   }
-}
-
-void TextNodeDumper::Visit(const OMPClause *C) {
-  if (!C) {
-    ColorScope Color(OS, ShowColors, NullColor);
-    OS << "<<<NULL>>> OMPClause";
-    return;
-  }
-  {
-    ColorScope Color(OS, ShowColors, AttrColor);
-    StringRef ClauseName(getOpenMPClauseName(C->getClauseKind()));
-    OS << "OMP" << ClauseName.substr(/*Start=*/0, /*N=*/1).upper()
-       << ClauseName.drop_front() << "Clause";
-  }
-  dumpPointer(C);
-  dumpSourceRange(SourceRange(C->getBeginLoc(), C->getEndLoc()));
-  if (C->isImplicit())
-    OS << " <implicit>";
 }
 
 void TextNodeDumper::dumpPointer(const void *Ptr) {
@@ -771,9 +752,6 @@ void TextNodeDumper::VisitUnaryExprOrTypeTraitExpr(
     break;
   case UETT_VecStep:
     OS << " vec_step";
-    break;
-  case UETT_OpenMPRequiredSimdAlign:
-    OS << " __builtin_omp_required_simd_align";
     break;
   case UETT_PreferredAlignOf:
     OS << " __alignof";

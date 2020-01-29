@@ -1716,7 +1716,6 @@ Parser::DeclGroupPtrTy Parser::ParseDeclaration(DeclaratorContext Context,
 /// [C++11] attribute-specifier-seq decl-specifier-seq[opt]
 ///             init-declarator-list ';'
 ///[C90/C++]init-declarator-list ';'                             [TODO]
-/// [OMP]   threadprivate-directive                              [TODO]
 ///
 ///       for-range-declaration: [C++11 6.5p1: stmt.ranged]
 ///         attribute-specifier-seq[opt] type-specifier-seq declarator
@@ -4014,14 +4013,6 @@ void Parser::ParseStructUnionBody(SourceLocation RecordLoc,
 
     if (Tok.is(tok::annot_pragma_align)) {
       HandlePragmaAlign();
-      continue;
-    }
-
-    if (Tok.is(tok::annot_pragma_openmp)) {
-      // Result can be ignored, because it must be always empty.
-      AccessSpecifier AS = AS_none;
-      ParsedAttributesWithRange Attrs(AttrFactory);
-      (void)ParseOpenMPDeclarativeDirectiveWithExtDecl(AS, Attrs);
       continue;
     }
 

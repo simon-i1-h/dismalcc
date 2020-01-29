@@ -21,7 +21,6 @@
 #include "clang/AST/DeclBase.h"
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclObjC.h"
-#include "clang/AST/DeclOpenMP.h"
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/DeclarationName.h"
 #include "clang/AST/Expr.h"
@@ -1936,14 +1935,10 @@ void VarDecl::setStorageClass(StorageClass SC) {
 VarDecl::TLSKind VarDecl::getTLSKind() const {
   switch (VarDeclBits.TSCSpec) {
   case TSCS_unspecified:
-    if (!hasAttr<ThreadAttr>() &&
-        !(getASTContext().getLangOpts().OpenMPUseTLS &&
-          getASTContext().getTargetInfo().isTLSSupported() &&
-          hasAttr<OMPThreadPrivateDeclAttr>()))
+    if (!hasAttr<ThreadAttr>())
       return TLS_None;
-    return ((getASTContext().getLangOpts().isCompatibleWithMSVC(
-                LangOptions::MSVC2015)) ||
-            hasAttr<OMPThreadPrivateDeclAttr>())
+    return getASTContext().getLangOpts().isCompatibleWithMSVC(
+               LangOptions::MSVC2015)
                ? TLS_Dynamic
                : TLS_Static;
   case TSCS___thread: // Fall through.

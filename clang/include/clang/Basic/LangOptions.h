@@ -238,14 +238,6 @@ public:
   /// A list of all -fno-builtin-* function names (e.g., memset).
   std::vector<std::string> NoBuiltinFuncs;
 
-  /// Triples of the OpenMP targets that the host code codegen should
-  /// take into account in order to generate accurate offloading descriptors.
-  std::vector<llvm::Triple> OMPTargetTriples;
-
-  /// Name of the IR file that contains the result of the OpenMP target
-  /// host code generation.
-  std::string OMPHostIRFile;
-
   /// Indicates whether the front-end is explicitly told that the
   /// input is a header file (i.e. -x c-header).
   bool IsHeaderFile = false;

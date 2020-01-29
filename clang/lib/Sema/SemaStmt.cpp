@@ -2908,9 +2908,6 @@ Sema::ActOnBreakStmt(SourceLocation BreakLoc, Scope *CurScope) {
     // C99 6.8.6.3p1: A break shall appear only in or as a switch/loop body.
     return StmtError(Diag(BreakLoc, diag::err_break_not_in_loop_or_switch));
   }
-  if (S->isOpenMPLoopScope())
-    return StmtError(Diag(BreakLoc, diag::err_omp_loop_cannot_use_stmt)
-                     << "break");
   CheckJumpOutOfSEHFinally(*this, BreakLoc, *S);
 
   return new (Context) BreakStmt(BreakLoc);
@@ -4011,20 +4008,13 @@ StmtResult Sema::ActOnCXXTryBlock(SourceLocation TryLoc, Stmt *TryBlock,
                                   ArrayRef<Stmt *> Handlers) {
   // Don't report an error if 'try' is used in system headers.
   if (!getLangOpts().CXXExceptions &&
-      !getSourceManager().isInSystemHeader(TryLoc) &&
-      (!getLangOpts().OpenMPIsDevice ||
-       !getLangOpts().OpenMPHostCXXExceptions ||
-       isInOpenMPTargetExecutionDirective() ||
-       isInOpenMPDeclareTargetContext()))
+      !getSourceManager().isInSystemHeader(TryLoc))
     Diag(TryLoc, diag::err_exceptions_disabled) << "try";
 
   // Exceptions aren't allowed in CUDA device code.
   if (getLangOpts().CUDA)
     CUDADiagIfDeviceCode(TryLoc, diag::err_cuda_device_exceptions)
         << "try" << CurrentCUDATarget();
-
-  if (getCurScope() && getCurScope()->isOpenMPSimdDirectiveScope())
-    Diag(TryLoc, diag::err_omp_simd_region_cannot_use_stmt) << "try";
 
   sema::FunctionScopeInfo *FSI = getCurFunction();
 

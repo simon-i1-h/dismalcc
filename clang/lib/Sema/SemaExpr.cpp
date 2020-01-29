@@ -23,7 +23,6 @@
 #include "clang/AST/Expr.h"
 #include "clang/AST/ExprCXX.h"
 #include "clang/AST/ExprObjC.h"
-#include "clang/AST/ExprOpenMP.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/TypeLoc.h"
 #include "clang/Basic/FixedPoint.h"
@@ -296,19 +295,6 @@ bool Sema::DiagnoseUseOfDecl(NamedDecl *D, ArrayRef<SourceLocation> Locs,
       return true;
   } else if (diagnoseArgIndependentDiagnoseIfAttrs(D, Loc)) {
       return true;
-  }
-
-  // [OpenMP 4.0], 2.15 declare reduction Directive, Restrictions
-  // Only the variables omp_in and omp_out are allowed in the combiner.
-  // Only the variables omp_priv and omp_orig are allowed in the
-  // initializer-clause.
-  auto *DRD = dyn_cast<OMPDeclareReductionDecl>(CurContext);
-  if (LangOpts.OpenMP && DRD && !CurContext->containsDecl(D) &&
-      isa<VarDecl>(D)) {
-    Diag(Loc, diag::err_omp_wrong_var_in_declare_reduction)
-        << getCurFunction()->HasOMPDeclareReductionCombiner;
-    Diag(D->getLocation(), diag::note_entity_declared_at) << D;
-    return true;
   }
 
   DiagnoseAvailabilityOfDecl(D, Locs, UnknownObjCClass, ObjCPropertyAccess,
@@ -2899,7 +2885,6 @@ ExprResult Sema::BuildDeclarationNameExpr(
     // Unresolved using declarations are dependent.
     case Decl::EnumConstant:
     case Decl::UnresolvedUsingValue:
-    case Decl::OMPDeclareReduction:
       valueKind = VK_RValue;
       break;
 
@@ -2938,7 +2923,6 @@ ExprResult Sema::BuildDeclarationNameExpr(
     case Decl::VarTemplateSpecialization:
     case Decl::VarTemplatePartialSpecialization:
     case Decl::Decomposition:
-    case Decl::OMPCapturedExpr:
       // In C, "extern void blah;" is valid and is an r-value.
       if (!getLangOpts().CPlusPlus &&
           !type.hasQualifiers() &&
@@ -3803,8 +3787,7 @@ bool Sema::CheckUnaryExprOrTypeTraitOperand(QualType ExprType,
   // C11 6.5.3.4/3, C++11 [expr.alignof]p3:
   //   When alignof or _Alignof is applied to an array type, the result
   //   is the alignment of the element type.
-  if (ExprKind == UETT_AlignOf || ExprKind == UETT_PreferredAlignOf ||
-      ExprKind == UETT_OpenMPRequiredSimdAlign)
+  if (ExprKind == UETT_AlignOf || ExprKind == UETT_PreferredAlignOf)
     ExprType = Context.getBaseElementType(ExprType);
 
   if (ExprKind == UETT_VecStep)
@@ -4087,9 +4070,6 @@ Sema::CreateUnaryExprOrTypeTraitExpr(Expr *E, SourceLocation OpLoc,
     isInvalid = CheckAlignOfExpr(*this, E, ExprKind);
   } else if (ExprKind == UETT_VecStep) {
     isInvalid = CheckVecStepExpr(E);
-  } else if (ExprKind == UETT_OpenMPRequiredSimdAlign) {
-      Diag(E->getExprLoc(), diag::err_openmp_default_simd_align_expr);
-      isInvalid = true;
   } else if (E->refersToBitField()) {  // C99 6.5.3.4p1.
     Diag(E->getExprLoc(), diag::err_sizeof_alignof_typeof_bitfield) << 0;
     isInvalid = true;
@@ -4213,11 +4193,6 @@ static bool isMSPropertySubscriptExpr(Sema &S, Expr *Base) {
 ExprResult
 Sema::ActOnArraySubscriptExpr(Scope *S, Expr *base, SourceLocation lbLoc,
                               Expr *idx, SourceLocation rbLoc) {
-  if (base && !base->getType().isNull() &&
-      base->getType()->isSpecificPlaceholderType(BuiltinType::OMPArraySection))
-    return ActOnOMPArraySectionExpr(base, lbLoc, idx, SourceLocation(),
-                                    /*Length=*/nullptr, rbLoc);
-
   // Since this might be a postfix expression, get rid of ParenListExprs.
   if (isa<ParenListExpr>(base)) {
     ExprResult result = MaybeConvertParenListExprToParenExpr(S, base);
@@ -4334,153 +4309,6 @@ void Sema::CheckSubscriptAccessOfNoDeref(const ArraySubscriptExpr *E) {
     if (Ptr->getPointeeType()->hasAttr(attr::NoDeref))
       LastRecord.PossibleDerefs.insert(E);
   }
-}
-
-ExprResult Sema::ActOnOMPArraySectionExpr(Expr *Base, SourceLocation LBLoc,
-                                          Expr *LowerBound,
-                                          SourceLocation ColonLoc, Expr *Length,
-                                          SourceLocation RBLoc) {
-  if (Base->getType()->isPlaceholderType() &&
-      !Base->getType()->isSpecificPlaceholderType(
-          BuiltinType::OMPArraySection)) {
-    ExprResult Result = CheckPlaceholderExpr(Base);
-    if (Result.isInvalid())
-      return ExprError();
-    Base = Result.get();
-  }
-  if (LowerBound && LowerBound->getType()->isNonOverloadPlaceholderType()) {
-    ExprResult Result = CheckPlaceholderExpr(LowerBound);
-    if (Result.isInvalid())
-      return ExprError();
-    Result = DefaultLvalueConversion(Result.get());
-    if (Result.isInvalid())
-      return ExprError();
-    LowerBound = Result.get();
-  }
-  if (Length && Length->getType()->isNonOverloadPlaceholderType()) {
-    ExprResult Result = CheckPlaceholderExpr(Length);
-    if (Result.isInvalid())
-      return ExprError();
-    Result = DefaultLvalueConversion(Result.get());
-    if (Result.isInvalid())
-      return ExprError();
-    Length = Result.get();
-  }
-
-  // Build an unanalyzed expression if either operand is type-dependent.
-  if (Base->isTypeDependent() ||
-      (LowerBound &&
-       (LowerBound->isTypeDependent() || LowerBound->isValueDependent())) ||
-      (Length && (Length->isTypeDependent() || Length->isValueDependent()))) {
-    return new (Context)
-        OMPArraySectionExpr(Base, LowerBound, Length, Context.DependentTy,
-                            VK_LValue, OK_Ordinary, ColonLoc, RBLoc);
-  }
-
-  // Perform default conversions.
-  QualType OriginalTy = OMPArraySectionExpr::getBaseOriginalType(Base);
-  QualType ResultTy;
-  if (OriginalTy->isAnyPointerType()) {
-    ResultTy = OriginalTy->getPointeeType();
-  } else if (OriginalTy->isArrayType()) {
-    ResultTy = OriginalTy->getAsArrayTypeUnsafe()->getElementType();
-  } else {
-    return ExprError(
-        Diag(Base->getExprLoc(), diag::err_omp_typecheck_section_value)
-        << Base->getSourceRange());
-  }
-  // C99 6.5.2.1p1
-  if (LowerBound) {
-    auto Res = PerformOpenMPImplicitIntegerConversion(LowerBound->getExprLoc(),
-                                                      LowerBound);
-    if (Res.isInvalid())
-      return ExprError(Diag(LowerBound->getExprLoc(),
-                            diag::err_omp_typecheck_section_not_integer)
-                       << 0 << LowerBound->getSourceRange());
-    LowerBound = Res.get();
-
-    if (LowerBound->getType()->isSpecificBuiltinType(BuiltinType::Char_S) ||
-        LowerBound->getType()->isSpecificBuiltinType(BuiltinType::Char_U))
-      Diag(LowerBound->getExprLoc(), diag::warn_omp_section_is_char)
-          << 0 << LowerBound->getSourceRange();
-  }
-  if (Length) {
-    auto Res =
-        PerformOpenMPImplicitIntegerConversion(Length->getExprLoc(), Length);
-    if (Res.isInvalid())
-      return ExprError(Diag(Length->getExprLoc(),
-                            diag::err_omp_typecheck_section_not_integer)
-                       << 1 << Length->getSourceRange());
-    Length = Res.get();
-
-    if (Length->getType()->isSpecificBuiltinType(BuiltinType::Char_S) ||
-        Length->getType()->isSpecificBuiltinType(BuiltinType::Char_U))
-      Diag(Length->getExprLoc(), diag::warn_omp_section_is_char)
-          << 1 << Length->getSourceRange();
-  }
-
-  // C99 6.5.2.1p1: "shall have type "pointer to *object* type". Similarly,
-  // C++ [expr.sub]p1: The type "T" shall be a completely-defined object
-  // type. Note that functions are not objects, and that (in C99 parlance)
-  // incomplete types are not object types.
-  if (ResultTy->isFunctionType()) {
-    Diag(Base->getExprLoc(), diag::err_omp_section_function_type)
-        << ResultTy << Base->getSourceRange();
-    return ExprError();
-  }
-
-  if (RequireCompleteType(Base->getExprLoc(), ResultTy,
-                          diag::err_omp_section_incomplete_type, Base))
-    return ExprError();
-
-  if (LowerBound && !OriginalTy->isAnyPointerType()) {
-    Expr::EvalResult Result;
-    if (LowerBound->EvaluateAsInt(Result, Context)) {
-      // OpenMP 4.5, [2.4 Array Sections]
-      // The array section must be a subset of the original array.
-      llvm::APSInt LowerBoundValue = Result.Val.getInt();
-      if (LowerBoundValue.isNegative()) {
-        Diag(LowerBound->getExprLoc(), diag::err_omp_section_not_subset_of_array)
-            << LowerBound->getSourceRange();
-        return ExprError();
-      }
-    }
-  }
-
-  if (Length) {
-    Expr::EvalResult Result;
-    if (Length->EvaluateAsInt(Result, Context)) {
-      // OpenMP 4.5, [2.4 Array Sections]
-      // The length must evaluate to non-negative integers.
-      llvm::APSInt LengthValue = Result.Val.getInt();
-      if (LengthValue.isNegative()) {
-        Diag(Length->getExprLoc(), diag::err_omp_section_length_negative)
-            << LengthValue.toString(/*Radix=*/10, /*Signed=*/true)
-            << Length->getSourceRange();
-        return ExprError();
-      }
-    }
-  } else if (ColonLoc.isValid() &&
-             (OriginalTy.isNull() || (!OriginalTy->isConstantArrayType() &&
-                                      !OriginalTy->isVariableArrayType()))) {
-    // OpenMP 4.5, [2.4 Array Sections]
-    // When the size of the array dimension is not known, the length must be
-    // specified explicitly.
-    Diag(ColonLoc, diag::err_omp_section_length_undefined)
-        << (!OriginalTy.isNull() && OriginalTy->isArrayType());
-    return ExprError();
-  }
-
-  if (!Base->getType()->isSpecificPlaceholderType(
-          BuiltinType::OMPArraySection)) {
-    ExprResult Result = DefaultFunctionArrayLvalueConversion(Base);
-    if (Result.isInvalid())
-      return ExprError();
-    Base = Result.get();
-  }
-  return new (Context)
-      OMPArraySectionExpr(Base, LowerBound, Length, Context.OMPArraySectionTy,
-                          VK_LValue, OK_Ordinary, ColonLoc, RBLoc);
 }
 
 ExprResult
@@ -5185,7 +5013,6 @@ static bool isPlaceholderToRemoveAsArg(QualType type) {
   // These are always invalid as call arguments and should be reported.
   case BuiltinType::BoundMember:
   case BuiltinType::BuiltinFn:
-  case BuiltinType::OMPArraySection:
     return true;
 
   }
@@ -14857,15 +14684,6 @@ static bool isVariableAlreadyCapturedInScopeInfo(CapturingScopeInfo *CSI, VarDec
     // Compute the type of an expression that refers to this variable.
     DeclRefType = CaptureType.getNonReferenceType();
 
-    // Similarly to mutable captures in lambda, all the OpenMP captures by copy
-    // are mutable in the sense that user can change their value - they are
-    // private instances of the captured declarations.
-    const Capture &Cap = CSI->getCapture(Var);
-    if (Cap.isCopyCapture() &&
-        !(isa<LambdaScopeInfo>(CSI) && cast<LambdaScopeInfo>(CSI)->Mutable) &&
-        !(isa<CapturedRegionScopeInfo>(CSI) &&
-          cast<CapturedRegionScopeInfo>(CSI)->CapRegionKind == CR_OpenMP))
-      DeclRefType.addConst();
     return true;
   }
   return false;
@@ -15021,8 +14839,7 @@ static bool captureInBlock(BlockScopeInfo *BSI, VarDecl *Var,
   }
 
   const bool HasBlocksAttr = Var->hasAttr<BlocksAttr>();
-  if (HasBlocksAttr || CaptureType->isReferenceType() ||
-      (S.getLangOpts().OpenMP && S.isOpenMPCapturedDecl(Var))) {
+  if (HasBlocksAttr || CaptureType->isReferenceType()) {
     // Block capture by reference does not change the capture or
     // declaration reference types.
     ByRef = true;
@@ -15092,17 +14909,6 @@ static bool captureInCapturedRegion(CapturedRegionScopeInfo *RSI,
                                     Sema &S) {
   // By default, capture variables by reference.
   bool ByRef = true;
-  // Using an LValue reference type is consistent with Lambdas (see below).
-  if (S.getLangOpts().OpenMP && RSI->CapRegionKind == CR_OpenMP) {
-    if (S.isOpenMPCapturedDecl(Var)) {
-      bool HasConst = DeclRefType.isConstQualified();
-      DeclRefType = DeclRefType.getUnqualifiedType();
-      // Don't lose diagnostics about assignments to const.
-      if (HasConst)
-        DeclRefType.addConst();
-    }
-    ByRef = S.isOpenMPCapturedByRef(Var, RSI->OpenMPLevel);
-  }
 
   if (ByRef)
     CaptureType = S.Context.getLValueReferenceType(DeclRefType);
@@ -15123,8 +14929,6 @@ static bool captureInCapturedRegion(CapturedRegionScopeInfo *RSI,
     Field->setImplicit(true);
     Field->setAccess(AS_private);
     RD->addDecl(Field);
-    if (S.getLangOpts().OpenMP && RSI->CapRegionKind == CR_OpenMP)
-      S.setOpenMPCaptureKind(Field, Var, RSI->OpenMPLevel);
 
     CopyExpr = new (S.Context) DeclRefExpr(
         S.Context, Var, RefersToCapturedVariable, DeclRefType, VK_LValue, Loc);
@@ -15300,7 +15104,6 @@ bool Sema::tryCaptureVariable(
     }
   }
 
-
   // If the variable is declared in the current context, there is no need to
   // capture it.
   if (VarDC == DC) return true;
@@ -15308,7 +15111,7 @@ bool Sema::tryCaptureVariable(
   // Capture global variables if it is required to use private copy of this
   // variable.
   bool IsGlobal = !Var->hasLocalStorage();
-  if (IsGlobal && !(LangOpts.OpenMP && isOpenMPCapturedDecl(Var)))
+  if (IsGlobal)
     return true;
   Var = Var->getCanonicalDecl();
 
@@ -15386,30 +15189,6 @@ bool Sema::tryCaptureVariable(
       captureVariablyModifiedType(Context, QTy, CSI);
     }
 
-    if (getLangOpts().OpenMP) {
-      if (auto *RSI = dyn_cast<CapturedRegionScopeInfo>(CSI)) {
-        // OpenMP private variables should not be captured in outer scope, so
-        // just break here. Similarly, global variables that are captured in a
-        // target region should not be captured outside the scope of the region.
-        if (RSI->CapRegionKind == CR_OpenMP) {
-          bool IsOpenMPPrivateDecl = isOpenMPPrivateDecl(Var, RSI->OpenMPLevel);
-          auto IsTargetCap = !IsOpenMPPrivateDecl &&
-                             isOpenMPTargetCapturedDecl(Var, RSI->OpenMPLevel);
-          // When we detect target captures we are looking from inside the
-          // target region, therefore we need to propagate the capture from the
-          // enclosing region. Therefore, the capture is not initially nested.
-          if (IsTargetCap)
-            adjustOpenMPTargetScopeIndex(FunctionScopesIndex, RSI->OpenMPLevel);
-
-          if (IsTargetCap || IsOpenMPPrivateDecl) {
-            Nested = !IsTargetCap;
-            DeclRefType = DeclRefType.getUnqualifiedType();
-            CaptureType = Context.getLValueReferenceType(DeclRefType);
-            break;
-          }
-        }
-      }
-    }
     if (CSI->ImpCaptureStyle == CapturingScopeInfo::ImpCap_None && !Explicit) {
       // No capture-default, and this is not an explicit capture
       // so cannot capture this variable.
@@ -15672,8 +15451,7 @@ static void DoMarkVarDeclReferenced(Sema &SemaRef, SourceLocation Loc,
       IsVariableAConstantExpression(Var, SemaRef.Context)) {
     // A reference initialized by a constant expression can never be
     // odr-used, so simply ignore it.
-    if (!Var->getType()->isReferenceType() ||
-        (SemaRef.LangOpts.OpenMP && SemaRef.isOpenMPCapturedDecl(Var)))
+    if (!Var->getType()->isReferenceType())
       SemaRef.MaybeODRUseExprs.insert(E);
   } else if (OdrUseContext) {
     MarkVarDeclODRUsed(Var, Loc, SemaRef,
@@ -15717,9 +15495,6 @@ void Sema::MarkVariableReferenced(SourceLocation Loc, VarDecl *Var) {
 
 static void MarkExprReferenced(Sema &SemaRef, SourceLocation Loc,
                                Decl *D, Expr *E, bool MightBeOdrUse) {
-  if (SemaRef.isInOpenMPDeclareTargetContext())
-    SemaRef.checkDeclIsAllowedInOpenMPTarget(E, D);
-
   if (VarDecl *Var = dyn_cast<VarDecl>(D)) {
     DoMarkVarDeclReferenced(SemaRef, Loc, Var, E);
     return;
@@ -16790,11 +16565,6 @@ ExprResult Sema::CheckPlaceholderExpr(Expr *E) {
     Diag(E->getBeginLoc(), diag::err_builtin_fn_use);
     return ExprError();
   }
-
-  // Expressions of unknown type.
-  case BuiltinType::OMPArraySection:
-    Diag(E->getBeginLoc(), diag::err_omp_array_section_use);
-    return ExprError();
 
   // Everything else should be impossible.
 #define IMAGE_TYPE(ImgType, Id, SingletonId, Access, Suffix) \

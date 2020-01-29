@@ -995,12 +995,6 @@ def ASM : DiagGroup<"asm", [
     ASMOperandWidths, ASMIgnoredQualifier
   ]>;
 
-// OpenMP warnings.
-def SourceUsesOpenMP : DiagGroup<"source-uses-openmp">;
-def OpenMPClauses : DiagGroup<"openmp-clauses">;
-def OpenMPLoopForm : DiagGroup<"openmp-loop-form">;
-def OpenMPTarget : DiagGroup<"openmp-target">;
-
 // Backend warnings.
 def BackendInlineAsm : DiagGroup<"inline-asm">;
 def BackendFrameLargerThanEQ : DiagGroup<"frame-larger-than=">;

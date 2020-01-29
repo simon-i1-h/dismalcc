@@ -26,7 +26,6 @@
 #include "clang/AST/Expr.h"
 #include "clang/AST/ExprCXX.h"
 #include "clang/AST/ExprObjC.h"
-#include "clang/AST/ExprOpenMP.h"
 #include "clang/AST/FormatString.h"
 #include "clang/AST/NSAPI.h"
 #include "clang/AST/NonTrivialTypeVisitor.h"
@@ -12525,13 +12524,6 @@ void Sema::CheckArrayAccess(const Expr *expr) {
       case Stmt::MemberExprClass: {
         expr = cast<MemberExpr>(expr)->getBase();
         break;
-      }
-      case Stmt::OMPArraySectionExprClass: {
-        const OMPArraySectionExpr *ASE = cast<OMPArraySectionExpr>(expr);
-        if (ASE->getLowerBound())
-          CheckArrayAccess(ASE->getBase(), ASE->getLowerBound(),
-                           /*ASE=*/nullptr, AllowOnePastEnd > 0);
-        return;
       }
       case Stmt::UnaryOperatorClass: {
         // Only unwrap the * and & unary operators

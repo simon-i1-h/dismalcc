@@ -287,10 +287,6 @@ def err_arcmt_nsinvocation_ownership : Error<"NSInvocation's %0 is not safe to b
 def err_openclcxx_not_supported : Error<
   "'%0' is not supported in OpenCL C++">;
 
-// OpenMP
-def err_omp_more_one_clause : Error<
-  "directive '#pragma omp %0' cannot contain more than one '%1' clause%select{| with '%3' name modifier| with 'source' dependence}2">;
-
 // Static Analyzer Core
 def err_unknown_analyzer_checker : Error<
     "no analyzer checkers are associated with '%0'">;

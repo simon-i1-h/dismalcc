@@ -751,20 +751,13 @@ ExprResult Sema::BuildCXXThrow(SourceLocation OpLoc, Expr *Ex,
                                bool IsThrownVarInScope) {
   // Don't report an error if 'throw' is used in system headers.
   if (!getLangOpts().CXXExceptions &&
-      !getSourceManager().isInSystemHeader(OpLoc) &&
-      (!getLangOpts().OpenMPIsDevice ||
-       !getLangOpts().OpenMPHostCXXExceptions ||
-       isInOpenMPTargetExecutionDirective() ||
-       isInOpenMPDeclareTargetContext()))
+      !getSourceManager().isInSystemHeader(OpLoc))
     Diag(OpLoc, diag::err_exceptions_disabled) << "throw";
 
   // Exceptions aren't allowed in CUDA device code.
   if (getLangOpts().CUDA)
     CUDADiagIfDeviceCode(OpLoc, diag::err_cuda_device_exceptions)
         << "throw" << CurrentCUDATarget();
-
-  if (getCurScope() && getCurScope()->isOpenMPSimdDirectiveScope())
-    Diag(OpLoc, diag::err_omp_simd_region_cannot_use_stmt) << "throw";
 
   if (Ex && !Ex->isTypeDependent()) {
     QualType ExceptionObjectTy = Context.getExceptionObjectType(Ex->getType());

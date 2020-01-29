@@ -17,7 +17,6 @@
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/DeclVisitor.h"
 #include "clang/AST/Expr.h"
-#include "clang/AST/OpenMPClause.h"
 #include "clang/AST/PrettyDeclStackTrace.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Serialization/ASTReader.h"
@@ -144,10 +143,6 @@ namespace clang {
     void VisitObjCCompatibleAliasDecl(ObjCCompatibleAliasDecl *D);
     void VisitObjCPropertyDecl(ObjCPropertyDecl *D);
     void VisitObjCPropertyImplDecl(ObjCPropertyImplDecl *D);
-    void VisitOMPThreadPrivateDecl(OMPThreadPrivateDecl *D);
-    void VisitOMPRequiresDecl(OMPRequiresDecl *D);
-    void VisitOMPDeclareReductionDecl(OMPDeclareReductionDecl *D);
-    void VisitOMPCapturedExprDecl(OMPCapturedExprDecl *D);
 
     /// Add an Objective-C type parameter list to the given record.
     void AddObjCTypeParamList(ObjCTypeParamList *typeParams) {
@@ -1735,42 +1730,6 @@ void ASTDeclWriter::VisitRedeclarable(Redeclarable<T> *D) {
   }
 }
 
-void ASTDeclWriter::VisitOMPThreadPrivateDecl(OMPThreadPrivateDecl *D) {
-  Record.push_back(D->varlist_size());
-  VisitDecl(D);
-  for (auto *I : D->varlists())
-    Record.AddStmt(I);
-  Code = serialization::DECL_OMP_THREADPRIVATE;
-}
-
-void ASTDeclWriter::VisitOMPRequiresDecl(OMPRequiresDecl *D) {
-  Record.push_back(D->clauselist_size());
-  VisitDecl(D);
-  OMPClauseWriter ClauseWriter(Record); 
-  for (OMPClause *C : D->clauselists())
-    ClauseWriter.writeClause(C);
-  Code = serialization::DECL_OMP_REQUIRES;
-}
-
-void ASTDeclWriter::VisitOMPDeclareReductionDecl(OMPDeclareReductionDecl *D) {
-  VisitValueDecl(D);
-  Record.AddSourceLocation(D->getBeginLoc());
-  Record.AddStmt(D->getCombinerIn());
-  Record.AddStmt(D->getCombinerOut());
-  Record.AddStmt(D->getCombiner());
-  Record.AddStmt(D->getInitOrig());
-  Record.AddStmt(D->getInitPriv());
-  Record.AddStmt(D->getInitializer());
-  Record.push_back(D->getInitializerKind());
-  Record.AddDeclRef(D->getPrevDeclInScope());
-  Code = serialization::DECL_OMP_DECLARE_REDUCTION;
-}
-
-void ASTDeclWriter::VisitOMPCapturedExprDecl(OMPCapturedExprDecl *D) {
-  VisitVarDecl(D);
-  Code = serialization::DECL_OMP_CAPTUREDEXPR;
-}
-
 //===----------------------------------------------------------------------===//
 // ASTWriter Implementation
 //===----------------------------------------------------------------------===//
@@ -2254,7 +2213,7 @@ static bool isRequiredDecl(const Decl *D, ASTContext &Context,
   // An ObjCMethodDecl is never considered as "required" because its
   // implementation container always is.
 
-  // File scoped assembly or obj-c or OMP declare target implementation must be
+  // File scoped assembly or obj-c declare target implementation must be
   // seen.
   if (isa<FileScopeAsmDecl>(D) || isa<ObjCImplDecl>(D))
     return true;

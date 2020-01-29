@@ -21,7 +21,6 @@
 #include "clang/AST/DeclContextInternals.h"
 #include "clang/AST/DeclFriend.h"
 #include "clang/AST/DeclObjC.h"
-#include "clang/AST/DeclOpenMP.h"
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/DependentDiagnostic.h"
 #include "clang/AST/ExternalASTSource.h"
@@ -778,9 +777,6 @@ unsigned Decl::getIdentifierNamespaceForKind(Kind DeclKind) {
     case TypeAliasTemplate:
       return IDNS_Ordinary | IDNS_Tag | IDNS_Type;
 
-    case OMPDeclareReduction:
-      return IDNS_OMPReduction;
-
     // Never have names.
     case Friend:
     case FriendTemplate:
@@ -809,9 +805,6 @@ unsigned Decl::getIdentifierNamespaceForKind(Kind DeclKind) {
     case ObjCCategory:
     case ObjCCategoryImpl:
     case Import:
-    case OMPThreadPrivate:
-    case OMPRequires:
-    case OMPCapturedExpr:
     case Empty:
       // Never looked up by name.
       return 0;
@@ -1163,7 +1156,6 @@ DeclContext *DeclContext::getPrimaryContext() {
   case Decl::Export:
   case Decl::Block:
   case Decl::Captured:
-  case Decl::OMPDeclareReduction:
     // There is only one DeclContext for these entities.
     return this;
 
