@@ -216,31 +216,6 @@ add_definitions( -D_GNU_SOURCE )
 option(CLANG_BUILD_TOOLS
   "Build the Clang tools. If OFF, just generate build targets." ON)
 
-set(CLANG_ANALYZER_Z3_INSTALL_DIR "" CACHE STRING "Install directory of the Z3 solver.")
-
-find_package(Z3 4.7.1)
-
-if (CLANG_ANALYZER_Z3_INSTALL_DIR)
-  if (NOT Z3_FOUND)
-    message(FATAL_ERROR "Z3 4.7.1 has not been found in CLANG_ANALYZER_Z3_INSTALL_DIR: ${CLANG_ANALYZER_Z3_INSTALL_DIR}.")
-  endif()
-endif()
-
-set(CLANG_ANALYZER_ENABLE_Z3_SOLVER_DEFAULT "${Z3_FOUND}")
-
-option(CLANG_ANALYZER_ENABLE_Z3_SOLVER
-  "Enable Support for the Z3 constraint solver in the Clang Static Analyzer."
-  ${CLANG_ANALYZER_ENABLE_Z3_SOLVER_DEFAULT}
-)
-
-if (CLANG_ANALYZER_ENABLE_Z3_SOLVER)
-  if (NOT Z3_FOUND)
-    message(FATAL_ERROR "CLANG_ANALYZER_ENABLE_Z3_SOLVER cannot be enabled when Z3 is not available.")
-  endif()
-
-  set(CLANG_ANALYZER_WITH_Z3 1)
-endif()
-
 option(CLANG_ENABLE_PROTO_FUZZER "Build Clang protobuf fuzzer." OFF)
 
 # Clang version information
