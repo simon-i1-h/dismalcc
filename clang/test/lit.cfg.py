@@ -92,13 +92,6 @@ if has_plugins and config.llvm_plugin_ext:
 if config.clang_default_cxx_stdlib != '':
     config.available_features.add('default-cxx-stdlib-set')
 
-# Enabled/disabled features
-if config.clang_staticanalyzer:
-    config.available_features.add('staticanalyzer')
-
-    if config.clang_staticanalyzer_z3 == '1':
-        config.available_features.add('z3')
-
 # As of 2011.08, crash-recovery tests still do not pass on FreeBSD.
 if platform.system() not in ['FreeBSD']:
     config.available_features.add('crash-recovery')
