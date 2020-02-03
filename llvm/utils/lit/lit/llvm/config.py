@@ -479,9 +479,8 @@ class LLVMConfig(object):
         ld_lld = self.use_llvm_tool('ld.lld', required=required)
         lld_link = self.use_llvm_tool('lld-link', required=required)
         ld64_lld = self.use_llvm_tool('ld64.lld', required=required)
-        wasm_ld = self.use_llvm_tool('wasm-ld', required=required)
 
-        was_found = ld_lld and lld_link and ld64_lld and wasm_ld
+        was_found = ld_lld and lld_link and ld64_lld
         tool_substitutions = []
         if ld_lld:
             tool_substitutions.append(ToolSubst('ld.lld', command=ld_lld))
@@ -489,7 +488,5 @@ class LLVMConfig(object):
             tool_substitutions.append(ToolSubst('lld-link', command=lld_link))
         if ld64_lld:
             tool_substitutions.append(ToolSubst('ld64.lld', command=ld64_lld))
-        if wasm_ld:
-            tool_substitutions.append(ToolSubst('wasm-ld', command=wasm_ld))
         self.add_tool_substitutions(tool_substitutions)
         return was_found
