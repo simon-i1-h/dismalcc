@@ -9,13 +9,7 @@
 # traversing each directory.
 create_llvm_tool_options()
 
-# Build polly before the tools: the tools link against polly when
-# LINK_POLLY_INTO_TOOLS is set.
-if(WITH_POLLY)
-  add_llvm_external_project(polly)
-else()
-  set(LLVM_TOOL_POLLY_BUILD Off)
-endif()
+set(LLVM_TOOL_POLLY_BUILD Off)
 
 if(NOT LLVM_BUILD_LLVM_DYLIB AND NOT LLVM_BUILD_LLVM_C_DYLIB)
   set(LLVM_TOOL_LLVM_SHLIB_BUILD Off)
