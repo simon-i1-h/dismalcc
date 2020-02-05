@@ -54,9 +54,6 @@
 /* The LLVM product name and version */
 #define BACKEND_PACKAGE_STRING "${BACKEND_PACKAGE_STRING}"
 
-/* Linker version detected at compile time. */
-#cmakedefine HOST_LINK_VERSION "${HOST_LINK_VERSION}"
-
 /* pass --build-id to ld */
 #cmakedefine ENABLE_LINKER_BUILD_ID
 
