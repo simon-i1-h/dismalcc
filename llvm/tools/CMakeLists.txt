@@ -9,8 +9,6 @@
 # traversing each directory.
 create_llvm_tool_options()
 
-set(LLVM_TOOL_POLLY_BUILD Off)
-
 if(NOT LLVM_BUILD_LLVM_DYLIB AND NOT LLVM_BUILD_LLVM_C_DYLIB)
   set(LLVM_TOOL_LLVM_SHLIB_BUILD Off)
 endif()
