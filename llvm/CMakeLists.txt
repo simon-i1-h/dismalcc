@@ -225,9 +225,6 @@ set(LLVM_ABI_BREAKING_CHECKS "WITH_ASSERTS" CACHE STRING
 option(LLVM_FORCE_USE_OLD_TOOLCHAIN
        "Set to ON to force using an old, unsupported host toolchain." OFF)
 
-option(LLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN
-       "Set to ON to only warn when using a toolchain which is about to be deprecated, instead of emitting an error." OFF)
-
 option(LLVM_EXTERNALIZE_DEBUGINFO
   "Generate dSYM files and strip executables and libraries (Darwin Only)" OFF)
 
