@@ -43,21 +43,6 @@ llvm_config.with_system_environment(
     ['HOME', 'INCLUDE', 'LIB', 'TMP', 'TEMP', 'ASAN_SYMBOLIZER_PATH', 'MSAN_SYMBOLIZER_PATH'])
 
 
-# Set up OCAMLPATH to include newly built OCaml libraries.
-top_ocaml_lib = os.path.join(config.llvm_lib_dir, 'ocaml')
-llvm_ocaml_lib = os.path.join(top_ocaml_lib, 'llvm')
-
-llvm_config.with_system_environment('OCAMLPATH')
-llvm_config.with_environment('OCAMLPATH', top_ocaml_lib, append_path=True)
-llvm_config.with_environment('OCAMLPATH', llvm_ocaml_lib, append_path=True)
-
-llvm_config.with_system_environment('CAML_LD_LIBRARY_PATH')
-llvm_config.with_environment(
-    'CAML_LD_LIBRARY_PATH', llvm_ocaml_lib, append_path=True)
-
-# Set up OCAMLRUNPARAM to enable backtraces in OCaml tests.
-llvm_config.with_environment('OCAMLRUNPARAM', 'b')
-
 # Provide the path to asan runtime lib 'libclang_rt.asan_osx_dynamic.dylib' if
 # available. This is darwin specific since it's currently only needed on darwin.
 
@@ -115,23 +100,13 @@ asan_rtlib = get_asan_rtlib()
 if asan_rtlib:
     ld64_cmd = 'DYLD_INSERT_LIBRARIES={} {}'.format(asan_rtlib, ld64_cmd)
 
-ocamlc_command = '%s ocamlc -cclib -L%s %s' % (
-    config.ocamlfind_executable, config.llvm_lib_dir, config.ocaml_flags)
-ocamlopt_command = 'true'
-if config.have_ocamlopt:
-    ocamlopt_command = '%s ocamlopt -cclib -L%s -cclib -Wl,-rpath,%s %s' % (
-        config.ocamlfind_executable, config.llvm_lib_dir, config.llvm_lib_dir, config.ocaml_flags)
-
 opt_viewer_cmd = '%s %s/tools/opt-viewer/opt-viewer.py' % (sys.executable, config.llvm_src_root)
 
 tools = [
     ToolSubst('%lli', FindTool('lli'), post='.', extra_args=lli_args),
     ToolSubst('%llc_dwarf', FindTool('llc'), extra_args=llc_args),
-    ToolSubst('%go', config.go_executable, unresolved='ignore'),
     ToolSubst('%gold', config.gold_executable, unresolved='ignore'),
     ToolSubst('%ld64', ld64_cmd, unresolved='ignore'),
-    ToolSubst('%ocamlc', ocamlc_command, unresolved='ignore'),
-    ToolSubst('%ocamlopt', ocamlopt_command, unresolved='ignore'),
     ToolSubst('%opt-viewer', opt_viewer_cmd),
     ToolSubst('%llvm-objcopy', FindTool('llvm-objcopy')),
     ToolSubst('%llvm-strip', FindTool('llvm-strip')),
@@ -153,7 +128,6 @@ tools.extend([
 
 # The following tools are optional
 tools.extend([
-    ToolSubst('llvm-go', unresolved='ignore'),
     ToolSubst('llvm-mt', unresolved='ignore'),
     ToolSubst('Kaleidoscope-Ch3', unresolved='ignore'),
     ToolSubst('Kaleidoscope-Ch4', unresolved='ignore'),

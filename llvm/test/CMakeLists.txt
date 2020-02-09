@@ -1,6 +1,5 @@
 llvm_canonicalize_cmake_booleans(
   LLVM_TOOL_LTO_BUILD
-  LLVM_INCLUDE_GO_TESTS
   LLVM_USE_INTEL_JITEVENTS
   HAVE_LIBZ
   HAVE_LIBXAR
