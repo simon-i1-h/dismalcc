@@ -506,7 +506,6 @@ function(llvm_add_library name)
 
   if(ARG_SHARED OR ARG_MODULE)
     llvm_externalize_debuginfo(${name})
-    llvm_codesign(${name})
   endif()
 endfunction()
 
@@ -679,8 +678,6 @@ macro(add_llvm_executable name)
     # API for all shared libaries loaded by this executable.
     target_link_libraries(${name} PRIVATE ${LLVM_PTHREAD_LIB})
   endif()
-
-  llvm_codesign(${name} ENTITLEMENTS ${ARG_ENTITLEMENTS})
 endmacro(add_llvm_executable name)
 
 function(export_executable_symbols target)
@@ -1512,48 +1509,6 @@ function(llvm_externalize_debuginfo name)
       ${strip_command} -R .gnu_debuglink
       COMMAND ${CMAKE_OBJCOPY} --add-gnu-debuglink=$<TARGET_FILE:${name}>.debug $<TARGET_FILE:${name}>
       )
-  endif()
-endfunction()
-
-# Usage: llvm_codesign(name [ENTITLEMENTS file])
-function(llvm_codesign name)
-  cmake_parse_arguments(ARG "" "ENTITLEMENTS" "" ${ARGN})
-
-  if(NOT LLVM_CODESIGNING_IDENTITY)
-    return()
-  endif()
-
-  if(CMAKE_GENERATOR STREQUAL "Xcode")
-    set_target_properties(${name} PROPERTIES
-      XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ${LLVM_CODESIGNING_IDENTITY}
-    )
-    if(DEFINED ARG_ENTITLEMENTS)
-      set_target_properties(${name} PROPERTIES
-        XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS ${ARG_ENTITLEMENTS}
-      )
-    endif()
-  elseif(APPLE)
-    if(NOT CMAKE_CODESIGN)
-      set(CMAKE_CODESIGN xcrun codesign)
-    endif()
-    if(NOT CMAKE_CODESIGN_ALLOCATE)
-      execute_process(
-        COMMAND xcrun -f codesign_allocate
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        OUTPUT_VARIABLE CMAKE_CODESIGN_ALLOCATE
-      )
-    endif()
-    if(DEFINED ARG_ENTITLEMENTS)
-      set(pass_entitlements --entitlements ${ARG_ENTITLEMENTS})
-    endif()
-
-    add_custom_command(
-      TARGET ${name} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E
-              env CODESIGN_ALLOCATE=${CMAKE_CODESIGN_ALLOCATE}
-              ${CMAKE_CODESIGN} -s ${LLVM_CODESIGNING_IDENTITY}
-              ${pass_entitlements} $<TARGET_FILE:${name}>
-    )
   endif()
 endfunction()
 
