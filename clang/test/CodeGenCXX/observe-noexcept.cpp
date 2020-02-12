@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -triple  powerpc64le-unknown-unknown -std=c++11 -fopenmp -fexceptions -fcxx-exceptions -O0 -emit-llvm %s -o - | FileCheck %s
+// RUN: %clang_cc1 -triple  powerpc64le-unknown-unknown -std=c++11 -fexceptions -fcxx-exceptions -O0 -emit-llvm %s -o - | FileCheck %s
 
 // Check that regions that install a terminate scope in the exception stack can
 // correctly generate complex arithmetic.
@@ -9,11 +9,6 @@ void ffcomplex (int a) {
 
   // CHECK: call { double, double } @__muldc3(double %{{.+}}, double %{{.+}}, double %{{.+}}, double %{{.+}})
   dc *= dc;
-  // CHECK: call {{.+}} @__kmpc_fork_call({{.+}} [[REGNAME1:@.*]] to void (i32*, i32*, ...)*), { double, double }* %{{.+}})
-  #pragma omp parallel
-  {
-    dc *= dc;
-  }
   // CHECK: ret void
 }
 
@@ -32,11 +27,6 @@ void foo(int a, int b) {
 
   void (*fptr)(void) noexcept = fnoexcp;
 
-  // CHECK: call {{.+}} @__kmpc_fork_call({{.+}} [[REGNAME2:@.*]] to void (i32*, i32*, ...)*), void ()** %{{.+}})
-  #pragma omp parallel
-  {
-    fptr();
-  }
   // CHECK: ret void
 }
 

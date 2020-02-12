@@ -51,12 +51,6 @@
 // RUN:     -frtlib-add-rpath \
 // RUN:   | FileCheck --check-prefixes=RESDIR,LIBPATH-X86_64,RPATH-X86_64 %s
 //
-// Add LIBPATH, RPATH for OpenMP
-// RUN: %clang %s -### 2>&1 -target x86_64-linux -fopenmp \
-// RUN:     -resource-dir=%S/Inputs/resource_dir_with_arch_subdir \
-// RUN:     -frtlib-add-rpath \
-// RUN:   | FileCheck --check-prefixes=RESDIR,LIBPATH-X86_64,RPATH-X86_64 %s
-//
 // Add LIBPATH but no RPATH for ubsan (or any other sanitizer)
 // RUN: %clang %s -### 2>&1 -fsanitize=undefined -target x86_64-linux \
 // RUN:     -resource-dir=%S/Inputs/resource_dir_with_arch_subdir \
