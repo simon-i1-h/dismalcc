@@ -24,6 +24,6 @@ jobs:
           -DLLVM_BUILD_TOOLS=OFF -G 'Unix Makefiles' ../llvm
         cmake --build . --parallel "$(nproc)"
     - name: Test
-    - run: |
+      run: |
         cd ../t/regress
         make test
