@@ -1,5 +1,4 @@
 set(SOURCES
-  ARCMigrate.cpp
   BuildSystem.cpp
   CIndex.cpp
   CIndexCXX.cpp
@@ -32,6 +31,8 @@ set(SOURCES
   Index_Internal.h
   ../../include/clang-c/Index.h
   )
+  # XXX WORKAROUND: for building
+  #ARCMigrate.cpp
 
 set(LIBS
   clangAST
