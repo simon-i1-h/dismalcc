@@ -1,5 +1,6 @@
 0.4 (xxxx/xx/xx):
 - revert yaml-bench for tests.
+- revert clang tools for tests.
 
 0.3 (2020/02/03):
 - trim clang.
