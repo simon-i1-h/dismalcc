@@ -23,5 +23,7 @@ jobs:
           -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_ENABLE_PROJECTS='clang;lld' \
           -DLLVM_BUILD_TOOLS=OFF -G 'Unix Makefiles' ../llvm
         cmake --build . --parallel "$(nproc)"
+    - name: Test
+    - run: |
         cd ../t/regress
         make test
