@@ -25,5 +25,5 @@ jobs:
         cmake --build . --parallel "$(nproc)"
     - name: Test
       run: |
-        cd ../t/regress
+        cd t/regress
         make test
