@@ -1339,8 +1339,6 @@ static InputKind ParseFrontendArgs(FrontendOptions &Opts, ArgList &Args,
       Opts.ProgramAction = frontend::EmitAssembly; break;
     case OPT_emit_llvm_bc:
       Opts.ProgramAction = frontend::EmitBC; break;
-    case OPT_emit_html:
-      Opts.ProgramAction = frontend::EmitHTML; break;
     case OPT_emit_llvm:
       Opts.ProgramAction = frontend::EmitLLVM; break;
     case OPT_emit_llvm_only:
@@ -2671,7 +2669,6 @@ static bool isStrictlyPreprocessorAction(frontend::ActionKind Action) {
   case frontend::ASTView:
   case frontend::EmitAssembly:
   case frontend::EmitBC:
-  case frontend::EmitHTML:
   case frontend::EmitLLVM:
   case frontend::EmitLLVMOnly:
   case frontend::EmitCodeGenOnly:

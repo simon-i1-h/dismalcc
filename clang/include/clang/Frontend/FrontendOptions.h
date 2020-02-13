@@ -58,9 +58,6 @@ enum ActionKind {
   /// Emit a .bc file.
   EmitBC,
 
-  /// Translate input source into HTML.
-  EmitHTML,
-
   /// Emit a .ll file.
   EmitLLVM,
 
