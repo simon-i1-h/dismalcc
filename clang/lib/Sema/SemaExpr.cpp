@@ -14684,6 +14684,11 @@ static bool isVariableAlreadyCapturedInScopeInfo(CapturingScopeInfo *CSI, VarDec
     // Compute the type of an expression that refers to this variable.
     DeclRefType = CaptureType.getNonReferenceType();
 
+    const Capture &Cap = CSI->getCapture(Var);
+    if (Cap.isCopyCapture() &&
+        !(isa<LambdaScopeInfo>(CSI) && cast<LambdaScopeInfo>(CSI)->Mutable))
+      DeclRefType.addConst();
+
     return true;
   }
   return false;
