@@ -60,12 +60,6 @@
 // RUN: %clang -target x86_64-apple-darwin9 -ccc-print-phases -c -x assembler %s -m64 -m32 2>&1 | FileCheck -check-prefix=ARCH4 %s
 // ARCH4: 2: bind-arch, "i386", {1}, object
 
-// Analyzer
-// RUN: %clang -target i386-unknown-unknown -ccc-print-phases --analyze %s 2>&1 | FileCheck -check-prefix=ANALYZE %s
-// ANALYZE: 0: input, "{{.*}}phases.c", c
-// ANALYZE: 1: preprocessor, {0}, cpp-output
-// ANALYZE: 2: analyzer, {1}, plist
-
 // Precompiler
 // RUN: %clang -target i386-unknown-unknown -ccc-print-phases -x c-header %s 2>&1 | FileCheck -check-prefix=PCH %s
 // PCH: 0: input, "{{.*}}phases.c", c-header
