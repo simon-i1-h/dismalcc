@@ -22,6 +22,7 @@
 #include "clang/Frontend/FrontendPluginRegistry.h"
 #include "clang/Frontend/Utils.h"
 #include "clang/FrontendTool/Utils.h"
+#include "clang/Rewrite/Frontend/FrontendActions.h"
 #include "llvm/Option/OptTable.h"
 #include "llvm/Option/Option.h"
 #include "llvm/Support/BuryPointer.h"
@@ -53,6 +54,7 @@ CreateFrontendBaseAction(CompilerInstance &CI) {
   case EmitLLVMOnly:           return llvm::make_unique<EmitLLVMOnlyAction>();
   case EmitCodeGenOnly:        return llvm::make_unique<EmitCodeGenOnlyAction>();
   case EmitObj:                return llvm::make_unique<EmitObjAction>();
+  case FixIt:                  return llvm::make_unique<FixItAction>();
   case GenerateModule:
     return llvm::make_unique<GenerateModuleFromModuleMapAction>();
   case GenerateModuleInterface:
@@ -87,11 +89,18 @@ CreateFrontendBaseAction(CompilerInstance &CI) {
 
   case PrintPreamble:          return llvm::make_unique<PrintPreambleAction>();
   case PrintPreprocessedInput: {
+    if (CI.getPreprocessorOutputOpts().RewriteIncludes ||
+        CI.getPreprocessorOutputOpts().RewriteImports)
+      return llvm::make_unique<RewriteIncludesAction>();
     return llvm::make_unique<PrintPreprocessedAction>();
   }
-  // when ARC migrate is disabled
+  case RewriteMacros:          return llvm::make_unique<RewriteMacrosAction>();
+  case RewriteTest:            return llvm::make_unique<RewriteTestAction>();
+  // when ObjC Rewriter is disabled
+  case RewriteObjC:            Action = "RewriteObjC"; break;
+  // when ARC migrater is disabled
   case MigrateSource:          Action = "MigrateSource"; break;
-  // when static analysis is disabled
+  // when static analyzer is disabled
   case RunAnalysis:            Action = "RunAnalysis"; break;
   case RunPreprocessorOnly:    return llvm::make_unique<PreprocessOnlyAction>();
   }
@@ -120,10 +129,9 @@ CreateFrontendAction(CompilerInstance &CI) {
 
   const FrontendOptions &FEOpts = CI.getFrontendOpts();
 
-  // XXX WORKAROUND: for build
-  //if (FEOpts.FixAndRecompile) {
-  //  Act = llvm::make_unique<FixItRecompile>(std::move(Act));
-  //}
+  if (FEOpts.FixAndRecompile) {
+    Act = llvm::make_unique<FixItRecompile>(std::move(Act));
+  }
 
   // If there are any AST files to merge, create a frontend action
   // adaptor to perform the merge.
