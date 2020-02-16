@@ -2519,6 +2519,13 @@ static void ParseLangArgs(LangOptions &Opts, ArgList &Args, InputKind IK,
     }
   }
 
+  // Set the flag to prevent the implementation from emitting device exception
+  // handling code for those requiring so.
+  if (Opts.OpenCLCPlusPlus) {
+    Opts.Exceptions = 0;
+    Opts.CXXExceptions = 0;
+  }
+
   // Record whether the __DEPRECATED define was requested.
   Opts.Deprecated = Args.hasFlag(OPT_fdeprecated_macro,
                                  OPT_fno_deprecated_macro,
