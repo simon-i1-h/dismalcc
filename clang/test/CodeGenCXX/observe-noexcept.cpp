@@ -12,12 +12,6 @@ void ffcomplex (int a) {
   // CHECK: ret void
 }
 
-// CHECK: define internal {{.+}}[[REGNAME1]](
-// CHECK-NOT: invoke
-// CHECK: call { double, double } @__muldc3(double %{{.+}}, double %{{.+}}, double %{{.+}}, double %{{.+}})
-// CHECK-NOT: invoke
-// CHECK: ret void
-
 // Check if we are observing the function pointer attribute regardless what is
 // in the exception specification of the callees.
 void fnoexcp(void) noexcept;
@@ -26,12 +20,5 @@ void fnoexcp(void) noexcept;
 void foo(int a, int b) {
 
   void (*fptr)(void) noexcept = fnoexcp;
-
   // CHECK: ret void
 }
-
-// CHECK: define internal {{.+}}[[REGNAME2]](
-// CHECK-NOT: invoke
-// CHECK: call void %{{[0-9]+}}()
-// CHECK-NOT: invoke
-// CHECK: ret void
