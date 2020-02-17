@@ -1,4 +1,4 @@
-name: yeah
+name: guidance
 
 on:
   pull_request:
