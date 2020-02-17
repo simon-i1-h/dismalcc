@@ -1,4 +1,12 @@
+# DismalTC
+
 DismalTC is a toolchain.
+
+## Resources
+
+[Send patches](https://git-send-email.io) and questions: [~shimon/dismaltc@lists.sr.ht](https://lists.sr.ht/~shimon/dismaltc)
+Bugs and TODO: https://todo.sr.ht/~shimon/dismaltc
+CI: https://builds.sr.ht/~shimon/dismaltc
 
 ## TODO
 
@@ -7,7 +15,7 @@ DismalTC is a toolchain.
 - add more GNU C extensions. e.g. asm goto
 - add a "paranoia test" (ref. https://www.i-programmer.info/programming/cc/9212-finding-bugs-in-the-first-c-compiler-what-does-bjarne-think.html)
 
-## references
+## References
 
 - Compilers in OpenBSD: https://marc.info/?l=openbsd-misc&m=137530560232232&w=2
 - boringcc: https://groups.google.com/forum/#!msg/boring-crypto/48qa1kWignU/o8GGp2K1DAAJ
