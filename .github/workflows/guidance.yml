@@ -13,9 +13,9 @@ jobs:
         function comment() {
           cat <<EOF
         Thanks for PR! However we accept patches in \
-        (other place)[https://git.sr.ht/~shimon/dismaltc] instead of \
+        [other place](https://git.sr.ht/~shimon/dismaltc) instead of \
         this place. Please see \
-        (that)[https://git.sr.ht/~shimon/dismaltc] for the details. \
+        [that](https://git.sr.ht/~shimon/dismaltc) for the details. \
         You can contribute soon!
         EOF
         }
