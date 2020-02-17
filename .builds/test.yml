@@ -3,6 +3,7 @@ image: ubuntu/eoan
 packages:
 - clang
 - lld
+- cmake
 
 sources:
 - https://git.sr.ht/~shimon/dismaltc
