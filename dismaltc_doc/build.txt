@@ -1,8 +1,21 @@
+X86 only and disable tests:
 $ cd $REPOROOT
 $ mkdir _build
 $ cd _build
 $ CC=clang CXX=clang++ LDFLAGS='-fuse-ld=lld' cmake \
     -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_DOCS=OFF \
     -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_ENABLE_PROJECTS='clang;lld' \
+    -G 'Unix Makefiles' ../llvm
+$ make -j$n
+
+all:
+$ cd $REPOROOT
+$ mkdir _build
+$ cd _build
+$ CC=clang CXX=clang++ LDFLAGS='-fuse-ld=lld' cmake \
+    -DLLVM_INCLUDE_DOCS=OFF \
+    -DLLVM_TARGETS_TO_BUILD='AArch64;AMDGPU;ARM;Mips;PowerPC;Sparc;X86' \
+    -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=RISCV \
+    -DLLVM_ENABLE_PROJECTS='clang;lld' \
     -G 'Unix Makefiles' ../llvm
 $ make -j$n
