@@ -19,7 +19,6 @@ if(CLANG_BUILT_STANDALONE)
 endif()
 
 llvm_canonicalize_cmake_booleans(
-  CLANG_BUILD_EXAMPLES
   CLANG_ENABLE_ARCMT
   CLANG_ENABLE_STATIC_ANALYZER
   ENABLE_BACKTRACES
@@ -64,20 +63,6 @@ if(CLANG_ENABLE_STATIC_ANALYZER)
     clang-extdef-mapping
     )
 endif()
-
-if (CLANG_BUILD_EXAMPLES)
-  list(APPEND CLANG_TEST_DEPS
-    AnnotateFunctions
-    clang-interpreter
-    PrintFunctionNames
-    )
-endif ()
-
-if (CLANG_ENABLE_STATIC_ANALYZER AND CLANG_BUILD_EXAMPLES)
-  list(APPEND CLANG_TEST_DEPS
-    SampleAnalyzerPlugin
-    )
-endif ()
 
 set(CLANG_TEST_PARAMS
   clang_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
