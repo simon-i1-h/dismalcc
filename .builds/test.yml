@@ -1,17 +1,18 @@
-image: ubuntu/eoan
+image: alpine/latest
 
 packages:
 - clang
 - lld
 - cmake
+- python3
 
 sources:
 - https://git.sr.ht/~shimon/dismaltc
 
 tasks:
 # XXX WORKAROUND: remove unnecessary files because of disk full.
-- remove_files: |
-    rm -rf .git
+#- remove_files: |
+#    rm -rf .git
 - build: |
     mkdir dismaltc/_build
     cd dismaltc/_build
