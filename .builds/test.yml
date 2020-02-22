@@ -4,7 +4,6 @@ packages:
 - clang
 - lld
 - cmake
-- python3
 
 sources:
 - https://git.sr.ht/~shimon/dismaltc
