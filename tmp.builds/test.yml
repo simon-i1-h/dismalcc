@@ -9,17 +9,13 @@ sources:
 - https://git.sr.ht/~shimon/dismaltc
 
 tasks:
-# XXX WORKAROUND: remove unnecessary files because of disk full.
-#- remove_files: |
-#    rm -rf .git
 - build: |
     mkdir dismaltc/_build
     cd dismaltc/_build
-    # XXX WORKAROUND: disable to build tools because of disk full.
     CC=clang CXX=clang++ LDFLAGS='-fuse-ld=lld' cmake \
       -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_DOCS=OFF \
       -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_ENABLE_PROJECTS='clang;lld' \
-      -DLLVM_BUILD_TOOLS=OFF -G 'Unix Makefiles' ../llvm
+      -G 'Unix Makefiles' ../llvm
     cmake --build . --parallel "$(nproc)"
 - test: |
     cd dismaltc/t/regress
