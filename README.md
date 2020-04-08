@@ -7,6 +7,7 @@ DismalTC is a toolchain.
 - [Send patches](https://git-send-email.io) and questions (via email): ~shimon/dismaltc@lists.sr.ht (archive: https://lists.sr.ht/~shimon/dismaltc)
 - Bugs and TODO: https://todo.sr.ht/~shimon/dismaltc
 - CI: https://builds.sr.ht/~shimon/dismaltc
+- Repository: https://git.sr.ht/~shimon/dismaltc (Mirror: https://github.com/simon-i1-h/dismaltc)
 
 ## TODO
 
