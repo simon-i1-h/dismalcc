@@ -1,6 +1,6 @@
-# DismalTC
+# DismalTC (WIP)
 
-DismalTC is a toolchain.
+DismalTC is a simple toolchain of the C.
 
 ## Resources
 
@@ -8,6 +8,7 @@ DismalTC is a toolchain.
 - Bugs and TODO: https://todo.sr.ht/~shimon/dismaltc
 - CI: https://builds.sr.ht/~shimon/dismaltc
 - Repository: https://git.sr.ht/~shimon/dismaltc (Mirror: https://github.com/simon-i1-h/dismaltc)
+- Hub: https://sr.ht/~shimon/dismaltc
 
 ## TODO
 
