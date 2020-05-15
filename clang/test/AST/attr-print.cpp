@@ -1,6 +1,4 @@
 // RUN: %clang_cc1 %s -ast-print | FileCheck %s
-// RUN: %clang -emit-ast -o %t.ast %s
-// RUN: %clang_cc1 %t.ast -ast-print | FileCheck %s
 
 // CHECK: void xla(int a) __attribute__((xray_log_args(1)));
 void xla(int a) __attribute__((xray_log_args(1)));
