@@ -28,3 +28,4 @@ DismalTC is a simple toolchain of the C.
 - https://twitter.com/bluerise/status/1089624654355017728
 - The death of optimizing compilers: https://blog.cr.yp.to/20150314-optimizing.html
 - http://kerneltrap.org/node/6550
+- https://twitter.com/OpenBSD_src/status/1290300293322743808
